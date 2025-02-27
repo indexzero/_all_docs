@@ -1,0 +1,27 @@
+{
+  "name": "@_all_docs/cache",
+  "version": "0.0.0",
+  "description": "Fetch & cache :origin/_all_docs using a set of lexographically sorted keys",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/indexzero/_all_docs.git"
+  },
+  "dependencies": {
+    "nano": "^10.1.4"
+  },
+  "keywords": [
+    "relax",
+    "couchdb",
+    "_all_docs"
+  ],
+  "author": "Charlie Robbins <npm@charlie.dev>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/indexzero/_all_docs/issues"
+  },
+  "homepage": "https://github.com/indexzero/_all_docs#readme"
+}
