@@ -4,7 +4,7 @@
   "description": "Fetch & cache :origin/_all_docs using a set of lexographically sorted keys",
   "main": "src/index.js",
   "scripts": {
-    "test": "node test.js"
+    "test": "node --test test/index.test.js"
   },
   "repository": {
     "type": "git",
