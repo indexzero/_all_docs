@@ -3,19 +3,19 @@ const { readFile, unlink } = require('node:fs/promises');
 const { join } = require('node:path');
 const { ok } = require('node:assert/strict');
 
-const { allDocsForPartition } = require('../src/index');
+const { getPartition } = require('../src/index');
 
 const fixtures = join(__dirname, 'fixtures');
 
-describe('_all_docs for a partition', () => {
-  it('should write a file', async () => {
+describe('_all_docs/request', () => {
+  it('getPartition(opts) should write a file', async () => {
     const partition = {
       startKey: '8',
       endKey: '9',
       filename: join(fixtures, '8___9.json')
     };
 
-    await allDocsForPartition(partition);
+    await getPartition({ partition });
     const text = await readFile(partition.filename, 'utf8');
     const doc = JSON.parse(text);
 
