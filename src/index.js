@@ -1,5 +1,6 @@
-const fs = require('node:fs');
 const https = require('node:https');
+const fs = require('node:fs');
+const { writeFile } = require('node:fs/promises');
 const { pipeline } = require('node:stream/promises');
 
 const debug = require('debug')('_all_docs/request');
@@ -34,8 +35,35 @@ const defaults = {
   }).use('registry')
 };
 
-async function getPartition({ partition, ...options }) {
-  const registry = options.registry || defaults.registry;
+async function getPartition({ partition, ...relax }) {
+  const registry = relax.registry || defaults.registry;
+  const { startKey, endKey, filename } = partition;
+
+  const listOptions = {
+    start_key: startKey,
+    end_key: endKey,
+    include_docs: false
+  };
+
+  debug(`GET /registry/_all_docs?start_key="${startKey}"&end_key="${endKey}"&include_docs=false`);
+
+
+  try {
+    return await registry.list(listOptions);
+  } catch (err) {
+    debug(`💥 GET /registry/_all_docs?start_key="${startKey}"&end_key="${endKey}"&include_docs=false`);
+  }
+}
+
+
+async function writePartition(options) {
+  const results = await getPartition(options);
+  const { filename } = options.partition;
+  await writeFile(filename, JSON.stringify(results));
+}
+
+async function createWriteStream({ partition, ...relax }) {
+  const registry = relax.registry || defaults.registry;
   const { startKey, endKey, filename } = partition;
 
   const listOptions = {
@@ -57,5 +85,7 @@ async function getPartition({ partition, ...options }) {
 }
 
 module.exports = {
-  getPartition
+  getPartition,
+  writePartition,
+  createWriteStream
 }
