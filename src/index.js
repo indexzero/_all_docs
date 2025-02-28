@@ -2,50 +2,49 @@ const fs = require('node:fs');
 const https = require('node:https');
 const { pipeline } = require('node:stream/promises');
 
+const debug = require('debug')('_all_docs/request');
 const nano = require('nano');
 
 const {
-  CONCURRENCY,
-  START, 
-  LIMIT,
-  USER_AGENT = '_all_docs/0.0.0 (https://github.com/indexzero/_all_docs)',
-  DRY_RUN
-} = process.env;
+  ORIGIN,
+  USER_AGENT
+} = require('./env');
 
-const httpsAgent = new https.Agent({
+const defaultAgent = new https.Agent({
   keepAlive: true,
   timeout: 60000,
   maxFreeSockets: 2000,
   scheduling: 'fifo',
 });
 
-const relax = nano({
-  url: 'https://replicate.npmjs.com',
-  requestDefaults: {
-    agent: httpsAgent,
-    timeout: 30000,
-    headers: {
-      'user-agent': USER_AGENT,
-      'Accept-Encoding': 'deflate, gzip',
-      'content-type': 'application/json',
-      accept: 'application/json',
+const defaults = {
+  agent: defaultAgent,
+  registry: nano({
+    url: ORIGIN,
+    requestDefaults: {
+      agent: defaultAgent,
+      timeout: 30000,
+      headers: {
+        'user-agent': USER_AGENT,
+        'Accept-Encoding': 'deflate, gzip',
+        'content-type': 'application/json',
+        accept: 'application/json',
+      },
     },
-  },
-});
+  }).use('registry')
+};
 
-const registry = relax.use('registry');
-
-
-
-async function allDocsForPartition(partition) {
+async function getPartition({ partition, ...options }) {
+  const registry = options.registry || defaults.registry;
   const { startKey, endKey, filename } = partition;
+
   const listOptions = {
     start_key: startKey,
     end_key: endKey,
     include_docs: false
   };
 
-  console.log(`GET /registry/_all_docs?start_key="${startKey}"&end_key="${endKey}"&include_docs=false`);
+  debug(`GET /registry/_all_docs?start_key="${startKey}"&end_key="${endKey}"&include_docs=false`);
 
   try {
     await pipeline(
@@ -53,10 +52,10 @@ async function allDocsForPartition(partition) {
       fs.createWriteStream(filename)
     )
   } catch (err) {
-    console.log(`💥 GET /registry/_all_docs?start_key="${startKey}"&end_key="${endKey}"&include_docs=false`);
+    debug(`💥 GET /registry/_all_docs?start_key="${startKey}"&end_key="${endKey}"&include_docs=false`);
   }
 }
 
 module.exports = {
-  allDocsForPartition
+  getPartition
 }

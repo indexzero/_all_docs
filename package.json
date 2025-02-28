@@ -11,6 +11,7 @@
     "url": "git+https://github.com/indexzero/_all_docs.git"
   },
   "dependencies": {
+    "debug": "^4.4.0",
     "nano": "^10.1.4"
   },
   "keywords": [
