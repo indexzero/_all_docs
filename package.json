@@ -12,7 +12,8 @@
   },
   "dependencies": {
     "debug": "^4.4.0",
-    "nano": "^10.1.4"
+    "nano": "^10.1.4",
+    "p-queue": "^8.1.0"
   },
   "keywords": [
     "relax",
