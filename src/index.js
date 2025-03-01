@@ -14,8 +14,11 @@ const {
 const defaultAgent = new https.Agent({
   keepAlive: true,
   timeout: 60000,
-  maxFreeSockets: 2000,
-  scheduling: 'fifo',
+  keepAliveMsecs: 30000,
+  maxSockets: 512,
+  maxFreeSockets: 256,
+  maxTotalSockets: 1024,
+  scheduling: 'fifo'
 });
 
 const defaults = {
@@ -49,6 +52,7 @@ async function getPartition({ partition, ...relax }) {
 
 
   try {
+    // TODO: (cjr) add retries
     return await registry.list(listOptions);
   } catch (err) {
     debug(`💥 GET /registry/_all_docs?start_key="${startKey}"&end_key="${endKey}"&include_docs=false`);
@@ -59,7 +63,11 @@ async function getPartition({ partition, ...relax }) {
 async function writePartition(options) {
   const results = await getPartition(options);
   const { filename } = options.partition;
-  await writeFile(filename, JSON.stringify(results));
+  if (results) {
+    await writeFile(filename, JSON.stringify(results));
+  }
+
+  return { filename, results };
 }
 
 async function createWriteStream({ partition, ...relax }) {
