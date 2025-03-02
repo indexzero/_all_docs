@@ -5,6 +5,7 @@ const { pipeline } = require('node:stream/promises');
 
 const debug = require('debug')('_all_docs/request');
 const nano = require('nano');
+const pRetry = require('p-retry').default;
 
 const {
   ORIGIN,
@@ -48,14 +49,27 @@ async function getPartition({ partition, ...relax }) {
     include_docs: false
   };
 
-  debug(`GET /registry/_all_docs?start_key="${startKey}"&end_key="${endKey}"&include_docs=false`);
-
+  async function getAttempt() {
+    debug(`GET /registry/_all_docs?start_key="${startKey}"&end_key="${endKey}"&include_docs=false`);
+    return await registry.list(listOptions);
+  }
 
   try {
-    // TODO: (cjr) add retries
-    return await registry.list(listOptions);
+    return await pRetry(getAttempt, {
+      retries: 3,
+      factor: 1.5,
+      minTimeout: 10 * 1000,
+      maxTimeout: 60 * 1000,
+      randomize: true,
+      onFailedAttempt: (err) => {
+        const { attemptNumber } = err;
+        debug(`${attemptNumber}💥 GET /registry/_all_docs?start_key="${startKey}"&end_key="${endKey}"&include_docs=false`);
+      }
+    });
   } catch (err) {
-    debug(`💥 GET /registry/_all_docs?start_key="${startKey}"&end_key="${endKey}"&include_docs=false`);
+    if (relax.requeue) {
+      relax.requeue(err, partition);
+    }
   }
 }
 
