@@ -13,6 +13,9 @@
   "dependencies": {
     "debug": "^4.4.0",
     "nano": "^10.1.4",
+    "p-debounce": "^4.0.0",
+    "p-map": "^7.0.3",
+    "p-map-series": "^3.0.0",
     "p-queue": "^8.1.0",
     "p-retry": "^6.2.1"
   },
