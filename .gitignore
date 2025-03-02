@@ -137,3 +137,8 @@ dist
 
 # Test fixtures
 test/fixtures/*
+
+# All default cache directories
+cache/*
+cache*/*
+!cache/.gitkeep
