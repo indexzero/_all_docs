@@ -1,6 +1,6 @@
 # @_all_docs/cache
 
-> Stability: NaN - 🐉 Here be dragons.
+> Stability: NaN – `Array(16).join("wat" - 1) + " Batman!"`
 
 Fetch & cache :origin/_all_docs using a set of lexographically sorted keys
 
@@ -12,22 +12,23 @@ Fetch & cache :origin/_all_docs using a set of lexographically sorted keys
 
 ## Features
 
-* 🛋️ Relax! Use the `start_key` and `end_key` CouchDB APIs to harness the power of the b-tree
+* 🛋️ Relax! Use the `start_key` and `end_key` CouchDB APIs to harness the power of partition-tolerance from the b-tree
+* 🔑 Accepts a set of lexographically sorted pivots to use as B-tree partitions
+* 🦿 Run map-reduce operations on `_all_docs` and `packument` entries by key range or cache partition
 * Coming Soon!
-  * 🔑 Accepts a set of lexographically sorted pivots to use as B-tree partitions
-  * 🕸️ Edge-first partition tolerant ETag-based caching out of the box!
-  * 🗺️ Map-reduce cached JSON partitions into a unified set
+  * 🕸️⚡️🐢🦎🦀 Lightning fast partition-tolerant edge read-replica for `cache-control: immutable` "Pouch-like" `[{ _id, _rev, ...doc }*]` JSON documents out of the box!
 
 ## How it works
 
 1. 📍 Provide `npm` origin, lexographic pivots, & location for existing cache (if any)
-2. ⚡️ Create `[start_key, end_key]` partition ranges from lexographic pivots
+2. ⚡️ Create `[{ start_key, end_key, id, filename }]` partition ranges from lexographic pivots
 3. 🏃‍♀️ For each `[start_key, end_key]` partition:
-   * 🔄 Calculate ETag from `${start_key}___${end_key}` cache contents (if any) for `If-None-Match` HTTP header
+   * 🗄️ Attempt to read `${start_key}___${end_key}.json` from local disk cache
+      * ✅ Set `max-age=${now-last.now}`s to HTTP `headers` for the outbound `undici` options.
    * ⬇️ `GET :npm-origin/_all_docs?start_key={start_key}&end_key={end_key}&include_docs=false`
 4. 👀 Validate the HTTP response:
    * ✅ `304 Not Modified` Local Cache Valid. No update necessary
-   * 📄 `200 OK` Update cache contents for `${start_key}___${end_key}` partition
+   * 📝 `200 OK` Update cache contents for `${start_key}___${end_key}.json` partition
 
 ## Usage
 
