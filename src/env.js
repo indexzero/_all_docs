@@ -1,3 +1,13 @@
+/**
+ * @typedef {Object} EnvConfig
+ * @property {number} CONCURRENCY
+ * @property {number} START
+ * @property {number} SIZE
+ * @property {string} ORIGIN
+ * @property {string} USER_AGENT
+ * @property {boolean} DRY_RUN
+ */
+
 const {
   CONCURRENCY,
   START, 
@@ -7,6 +17,7 @@ const {
   DRY_RUN
 } = process.env;
 
+/** @type {EnvConfig} */
 module.exports = {
   CONCURRENCY: parseInt(CONCURRENCY) || 10,
   START: parseInt(START) || 0,
@@ -14,4 +25,4 @@ module.exports = {
   ORIGIN,
   USER_AGENT,
   DRY_RUN: DRY_RUN === 'true'
-}
+};
