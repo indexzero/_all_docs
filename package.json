@@ -1,7 +1,7 @@
 {
   "name": "@_all_docs/cache",
   "version": "0.0.0",
-  "description": "Fetch & cache :origin/_all_docs using a set of lexographically sorted keys",
+  "description": "Fetch, cache, & map/reduce :origin/{_all_docs,:packument}` documents for a set of lexographically sorted pivots by range or partition",
   "main": "src/index.js",
   "scripts": {
     "test": "node --test test/index.test.js"
