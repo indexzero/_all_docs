@@ -1,9 +1,9 @@
 const { Agent, RetryAgent } = require('undici');
 const pMap = require('p-map').default;
 const pMapSeries = require('p-map-series').default;
-
 const debug = require('debug')('_all_docs/packument');
 
+/** @type {import('undici').AgentOptions} */
 const agentDefaults = {
   bodyTimeout: 600_000,
   headersTimeout: 600_000,
@@ -18,10 +18,12 @@ const agentDefaults = {
   },
   connections: 128,
   pipelining: 10
-}
+};
 
-
+/** @type {import('undici').Agent} */
 const dispatch = new Agent(agentDefaults);
+
+/** @type {import('undici').RetryAgent} */
 const agent = new RetryAgent(dispatch, {
   maxRetries: 3,
   timeoutFactor: 2,
@@ -29,6 +31,11 @@ const agent = new RetryAgent(dispatch, {
   maxTimeout: 30_000
 });
 
+/**
+ * Retrieves the packument for a given package name.
+ * @param {string} name
+ * @returns {Promise<any>} A promise resolving to the parsed packument.
+ */
 async function getPackument(name) {
   const options = {
     origin: 'https://replicate.npmjs.com',
@@ -50,11 +57,7 @@ async function getPackument(name) {
 
   debug('getPackument.request |', { name, options });
 
-  const {
-    statusCode,
-    headers,
-    body
-  } = await agent.request(options);
+  const { statusCode, headers, body } = await agent.request(options);
 
   debug('getPackument.response | ', { name, statusCode, headers });
 
@@ -66,12 +69,24 @@ async function getPackument(name) {
   return JSON.parse(text);
 }
 
+/**
+ * Retrieves packuments for multiple package names with a concurrency limit.
+ * @param {string[]} names
+ * @param {number} [limit=10]
+ * @returns {Promise<any[]>} A promise resolving to an array of packuments.
+ */
 async function getPackumentsLimit(names, limit = 10) {
   return await pMap(names, async function (name) {
     return await getPackument(name);
   }, { concurrency: limit });
 }
 
+/**
+ * Caches packuments in series by processing names one at a time.
+ * @param {string[]} names
+ * @param {(packument: any) => Promise<any>} writeFn
+ * @returns {Promise<any[]>} A promise resolving to an array of cached packuments.
+ */
 async function cachePackumentsSeries(names, writeFn) {
   return await pMapSeries(names, async function (name) {
     const packument = await getPackument(name);
