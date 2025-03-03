@@ -1,6 +1,6 @@
 {
   "name": "@_all_docs/cache",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Fetch, cache, & map/reduce :origin/{_all_docs,:packument}` documents for a set of lexographically sorted pivots by range or partition",
   "main": "src/index.js",
   "scripts": {
