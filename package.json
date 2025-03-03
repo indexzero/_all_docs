@@ -25,6 +25,10 @@
     "couchdb",
     "_all_docs"
   ],
+  "bin": {
+    "_all_docs_from_origin": "bin/partitions-fetch-from-origin.js",
+    "_all_docs_partipacku": "bin/packuments-fetch-for-partition.js"
+  },
   "author": "Charlie Robbins <npm@charlie.dev>",
   "license": "Apache-2.0",
   "bugs": {
