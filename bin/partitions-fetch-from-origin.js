@@ -9,7 +9,7 @@ const {
 } = require('../src/env');
 
 const { isPartitionCached } = require('../src/cache');
-const { queuedMapLimit } = require('../src/map-reduce');
+const { eachLimit } = require('../src/map-reduce');
 const { writePartition } = require('../src/index');
 
 const partitions = require(process.env.PARTITIONS);
