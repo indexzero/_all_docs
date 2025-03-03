@@ -4,27 +4,27 @@ const { writeFile } = require('node:fs/promises');
 const { join } = require('node:path');
 const { execSync, exec } = require('node:child_process');
 
-const debug = require('debug')('_all_docs/packuments-fetch-from-index');
+const debug = require('debug')('_all_docs/packuments-fetch-for-partition');
 
 const cacheDir = join(__dirname, '..', 'cache');
-const indexFilename = join(cacheDir, '.index');
 const packumentsDir = join(cacheDir, 'packuments');
 
-// const indexEntries = execSync(`head -n 100 ${indexFilename}`, { stdio: [] })
-  // .toString()
-  // .split('\n')
-  // .filter(Boolean)
-  // .map(line => line.trim().split(','));
+const PARTITION_ID = process.argv[2]
+  || process.env.PARTITION_ID;
 
-const indexEntries = readFileSync(indexFilename, 'utf8')
-  .split('\n')
-  .filter(Boolean)
-  .map(line => line.trim().split(','));
+const partition = JSON.parse(
+  readFileSync(join(cacheDir, `${PARTITION_ID}.json`), 'utf8')
+);
 
 (async function () {
   const limit = 10;
 
-  const packageNames = indexEntries.map(([name]) => name);
+  const packageNames = partition.rows.map(({ id }) => id);
+
+  debug('cache packuments |', {
+    partition: PARTITION_ID,
+    size: partition.rows.length
+  });
 
   let cached = 0;
   cachePackumentsSeries(packageNames, async function writePackument(packument) {
