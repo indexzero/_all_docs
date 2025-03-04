@@ -36,13 +36,8 @@ async function eachLimit(partitions, limit, mapFn) {
       pending: queue.pending
     });
   });
-  partitions.forEach(prt => {
-    const id = prt.id || `${prt.startKey}___${prt.endKey}`;
-    const priority = 0;
-    debug(`queue.add | { id: ${id} }`);
-    queue.add(async () => await mapFn(prt), { priority, id });
-  });
-  return queue;
+
+  await queue.addAll(partitions.map(prt => async() => await mapFn(prt)));
 }
 
 /**

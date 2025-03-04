@@ -17,7 +17,7 @@ const { writePartition } = require('./index');
 const { access, readFile, unlink, readdir, writeFile } = require('node:fs/promises');
 const fs = require('node:fs');
 const { basename, join, matchesGlob } = require('node:path');
-const { reduceAllDocsIndex } = require('../src/map-reduce');
+const { mapAllDocsIndex, reduceAllDocsIndex } = require('../src/map-reduce');
 const debug = require('debug')('_all_docs/cache');
 const dryrun = require('./env').DRY_RUN;
 
@@ -33,15 +33,41 @@ function partitionFromFilename(filename) {
 }
 
 /**
- * Loads partitions from a cache directory.
+ * Lists partitions from a cache directory.
  * @param {string} cacheDir
  * @returns {Promise<Partition[]>}
  */
-async function loadPartitions(cacheDir) {
+async function listPartitions(cacheDir) {
   const filenames = await readdir(cacheDir);
   return filenames
     .filter((filename) => matchesGlob(filename, '*.json'))
     .map(partitionFromFilename);
+}
+
+/**
+ * (Sync) Lists partitions from a cache directory.
+ * @param {string} cacheDir
+ * @returns {Partition[]}
+ */
+function listPartitionsSync(cacheDir) {
+  const filenames = fs.readdirSync(cacheDir);
+  return filenames
+    .filter((filename) => matchesGlob(filename, '*.json'))
+    .map(partitionFromFilename);
+}
+
+/**
+ * Reads JSON partitions from a cache directory.
+ * @param {string} cacheDir
+ * @returns {Promise<Partition[]>}
+ */
+async function readPartitions(cacheDir) {
+  const filenames = await readdir(cacheDir);
+  const partitions = filenames
+    .filter((filename) => matchesGlob(filename, '*.json'))
+    .map(partitionFromFilename);
+
+  return mapAllDocsIndex({ partitions, cacheDir });
 }
 
 /**
@@ -127,6 +153,8 @@ module.exports = {
   isPartitionCached,
   refreshPartition,
   getPartition,
-  loadPartitions,
+  listPartitions,
+  listPartitionsSync,
+  readPartitions,
   writeAllDocsIndex
 };
