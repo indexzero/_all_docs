@@ -135,8 +135,9 @@ dist
 # env
 .env
 
-# Test fixtures
+# Test fixtures & scratchpads
 test/fixtures/*
+scratch*
 
 # All default cache directories
 cache/*
