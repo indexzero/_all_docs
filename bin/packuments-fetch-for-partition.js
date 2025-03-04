@@ -1,8 +1,7 @@
-const { cachePackumentsSeries, getPackumentsLimit } = require('../src/packument.js');
+const { cachePackumentsLimit } = require('../src/packument.js');
 const { readFileSync } = require('node:fs');
 const { writeFile } = require('node:fs/promises');
 const { join } = require('node:path');
-const { execSync, exec } = require('node:child_process');
 
 const debug = require('debug')('_all_docs/packuments-fetch-for-partition');
 
@@ -17,7 +16,9 @@ const partition = JSON.parse(
 );
 
 (async function () {
-  const limit = 10;
+  const limit = process.env.CONCURRENCY
+    ? parseInt(process.env.CONCURRENCY, 10) 
+    : 10;
 
   const packageNames = partition.rows.map(({ id }) => id);
 
@@ -27,11 +28,11 @@ const partition = JSON.parse(
   });
 
   let cached = 0;
-  cachePackumentsSeries(packageNames, async function writePackument(packument) {
+  cachePackumentsLimit(packageNames, async function writePackument(packument) {
     const { _id, _rev } = packument;
 
     debug('cache packument | ', { _id, _rev, cached: ++cached });
 
     writeFile(join(packumentsDir, `${_id}.json`), JSON.stringify(packument));
-  });
+  }, limit);
 })();

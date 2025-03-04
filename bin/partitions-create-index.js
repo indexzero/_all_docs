@@ -1,5 +1,5 @@
 const { join } = require('node:path');
-const { loadPartitions, writeAllDocsIndex } = require('../src/cache');
+const { listPartitions, writeAllDocsIndex } = require('../src/cache');
 
 
 
@@ -8,6 +8,6 @@ const { loadPartitions, writeAllDocsIndex } = require('../src/cache');
   const cacheDir = join(__dirname, '..', 'cache');
   const concurrency = 10;
 
-  const partitions = await loadPartitions(cacheDir);
+  const partitions = await listPartitions(cacheDir);
   await writeAllDocsIndex({ partitions, cacheDir });
 })();
