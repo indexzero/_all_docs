@@ -1,35 +1,8 @@
-const { Agent, RetryAgent } = require('undici');
 const pMap = require('p-map').default;
 const pMapSeries = require('p-map-series').default;
+const { default } = require('./http');
+
 const debug = require('debug')('_all_docs/packument');
-
-/** @type {import('undici').AgentOptions} */
-const agentDefaults = {
-  bodyTimeout: 600_000,
-  headersTimeout: 600_000,
-  keepAliveMaxTimeout: 1_200_000,
-  keepAliveTimeout: 600_000,
-  keepAliveTimeoutThreshold: 30_000,
-  connect: {
-    timeout: 600_000,
-    keepAlive: true,
-    keepAliveInitialDelay: 30_000,
-    sessionTimeout: 600,
-  },
-  connections: 128,
-  pipelining: 10
-};
-
-/** @type {import('undici').Agent} */
-const dispatch = new Agent(agentDefaults);
-
-/** @type {import('undici').RetryAgent} */
-const agent = new RetryAgent(dispatch, {
-  maxRetries: 3,
-  timeoutFactor: 2,
-  minTimeout: 0,
-  maxTimeout: 30_000
-});
 
 /**
  * Retrieves the packument for a given package name.
@@ -37,6 +10,7 @@ const agent = new RetryAgent(dispatch, {
  * @returns {Promise<any>} A promise resolving to the parsed packument.
  */
 async function getPackument(name) {
+  const agent = default.agent;
   const options = {
     origin: 'https://replicate.npmjs.com',
     path: `/${name}`,
@@ -63,7 +37,7 @@ async function getPackument(name) {
 
   const text = await body.text();
 
-  debug('getPackument.text |', { name, text });
+  debug('getPackument.text |', { name, text: text.slice(0, 100) });
 
   // TODO (cjr): always gunzip text prior to JSON parse
   return JSON.parse(text);
@@ -95,8 +69,23 @@ async function cachePackumentsSeries(names, writeFn) {
   }, { concurrency: 1 });
 }
 
+/**
+ * Caches packuments by processing names by limit.
+ * @param {string[]} names
+ * @param {(packument: any) => Promise<any>} writeFn
+ * @returns {Promise<any[]>} A promise resolving to an array of cached packuments.
+ */
+async function cachePackumentsLimit(names, writeFn, limit) {
+  return await pMap(names, async function (name) {
+    const packument = await getPackument(name);
+    await writeFn(packument);
+    return packument;
+  }, { concurrency: limit });
+}
+
 module.exports = {
   getPackument,
   getPackumentsLimit,
-  cachePackumentsSeries
+  cachePackumentsSeries,
+  cachePackumentsLimit
 };

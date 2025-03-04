@@ -50,8 +50,10 @@ async function getPartition({ partition, ...relax }) {
   };
 
   async function getAttempt() {
-    debug(`GET /registry/_all_docs?start_key="${startKey}"&end_key="${endKey}"&include_docs=false`);
-    return await registry.list(listOptions);
+    debug('start', `GET /registry/_all_docs?start_key="${startKey}"&end_key="${endKey}"&include_docs=false`);
+    const results = await registry.list(listOptions);
+    debug(`end { rows: ${results.rows.length} }`, `GET /registry/_all_docs?start_key="${startKey}"&end_key="${endKey}"&include_docs=false`);
+    return results;
   }
 
   try {
@@ -67,9 +69,8 @@ async function getPartition({ partition, ...relax }) {
       }
     });
   } catch (err) {
-    if (relax.requeue) {
-      relax.requeue(err, partition);
-    }
+    // TODO (cjr): write to file
+    debug(`💥💥 GET /registry/_all_docs?start_key="${startKey}"&end_key="${endKey}"&include_docs=false`);
   }
 }
 
