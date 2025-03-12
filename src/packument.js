@@ -15,7 +15,7 @@ async function getPackument(name) {
   const agent = defaults.agent;
   const options = {
     origin: 'https://replicate.npmjs.com',
-    path: `/${name}`,
+    path: `/${encodeURIComponent(name)}`,
     method: 'GET',
     headers: {
       // TODO (cjr): only accept gzip encoding
@@ -42,6 +42,7 @@ async function getPackument(name) {
   debug('getPackument.text |', { name, text: text.slice(0, 100) });
 
   // TODO (cjr): always gunzip text prior to JSON parse
+  // TODO (cjr): validate the response is a valid packument before returning
   return JSON.parse(text);
 }
 
@@ -61,30 +62,45 @@ async function getPackumentsLimit(names, limit = 10) {
  * Caches packuments in series by processing names one at a time.
  * @param {string[]} names
  * @param {(packument: any) => Promise<any>} writeFn
- * @returns {Promise<any[]>} A promise resolving to an array of cached packuments.
+ * @returns {Promise<Number>} A promise resolving to the number of cache misses.
  */
-async function cachePackumentsSeries(names, writeFn) {
-  return await pMapSeries(names, async function (name) {
+async function cachePackumentsSeries(names, writeFn, { cacheDir }) {
+  let misses = 0;
+  await pMapSeries(names, async function (name) {
+    const filename = join(cacheDir, `${name}.json`);
+    if (await isJsonCached(filename)) {
+      misses = misses + 1;
+      return;
+    }
+
     const packument = await getPackument(name);
     await writeFn(packument);
-    return packument;
+
   }, { concurrency: 1 });
+
+  return misses;
 }
 
 /**
  * Caches packuments by processing names by limit.
  * @param {string[]} names
  * @param {(packument: any) => Promise<any>} writeFn
- * @returns {Promise<any[]>} A promise resolving to an array of cached packuments.
+ * @returns {Promise<Number>} A promise resolving to the number of cache misses.
  */
 async function cachePackumentsLimit(names, writeFn, { limit, cacheDir }) {
+  let misses = 0;
   await pMap(names, async function (name) {
-    const filename = join(cacheDir, `${name}.json`);
-    if (await isJsonCached(filename)) return;
+    const filename = join(cacheDir, `${encodeURIComponent(name)}.json`);
+    if (await isJsonCached(filename)) {
+      return;
+    }
 
+    misses = misses + 1;
     const packument = await getPackument(name);
     await writeFn(packument);
   }, { concurrency: limit });
+
+  return misses;
 }
 
 module.exports = {
