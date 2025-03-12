@@ -33,5 +33,5 @@ const indexEntries = readFileSync(indexFilename, 'utf8')
     debug('cache packument | ', { _id, _rev, cached: ++cached });
 
     writeFile(join(packumentsDir, `${_id}.json`), JSON.stringify(packument));
-  });
+  }, { cacheDir });
 })();
