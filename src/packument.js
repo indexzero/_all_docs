@@ -1,6 +1,8 @@
+const { join } = require('path');
 const pMap = require('p-map').default;
 const pMapSeries = require('p-map-series').default;
-const { default } = require('./http');
+const { isJsonCached } = require('./cache');
+const { defaults } = require('./http');
 
 const debug = require('debug')('_all_docs/packument');
 
@@ -10,7 +12,7 @@ const debug = require('debug')('_all_docs/packument');
  * @returns {Promise<any>} A promise resolving to the parsed packument.
  */
 async function getPackument(name) {
-  const agent = default.agent;
+  const agent = defaults.agent;
   const options = {
     origin: 'https://replicate.npmjs.com',
     path: `/${name}`,
@@ -75,11 +77,13 @@ async function cachePackumentsSeries(names, writeFn) {
  * @param {(packument: any) => Promise<any>} writeFn
  * @returns {Promise<any[]>} A promise resolving to an array of cached packuments.
  */
-async function cachePackumentsLimit(names, writeFn, limit) {
-  return await pMap(names, async function (name) {
+async function cachePackumentsLimit(names, writeFn, { limit, cacheDir }) {
+  await pMap(names, async function (name) {
+    const filename = join(cacheDir, `${name}.json`);
+    if (await isJsonCached(filename)) return;
+
     const packument = await getPackument(name);
     await writeFn(packument);
-    return packument;
   }, { concurrency: limit });
 }
 

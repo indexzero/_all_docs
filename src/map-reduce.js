@@ -78,7 +78,7 @@ async function reduceAllDocsIndex({ partitions, cacheDir, reduceFn, concurrency 
     if (!_all_docs || !_all_docs.rows || !_all_docs.rows.length) {
       return acc;
     }
-    
+
     const addToIndex = reduceFn
       ? _all_docs.rows.map(reduceFn)
       : _all_docs.rows;
