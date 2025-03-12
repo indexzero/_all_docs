@@ -81,11 +81,10 @@ function entryToTuple({ id, key, value }) {
 
 /**
  * Checks if a partition file is cached and contains valid JSON.
- * @param {Partition} partition
+ * @param {String} filename
  * @returns {Promise<boolean>}
  */
-async function isPartitionCached(partition) {
-  const { filename } = partition;
+async function isJsonCached(filename) {
   try {
     await access(filename, fs.constants.F_OK);
     debug(`${filename} cache | hit`);
@@ -110,7 +109,7 @@ async function isPartitionCached(partition) {
  * @returns {Promise<{ partition: Partition, cached: boolean }>}
  */
 async function refreshPartition({ partition }) {
-  const cached = await isPartitionCached(partition);
+  const cached = await isJsonCached(partition.filename);
   if (!cached && !dryrun) {
     await writePartition({ partition });
   }
@@ -150,7 +149,7 @@ async function getPartition(partition, dryrun) {
 }
 
 module.exports = {
-  isPartitionCached,
+  isJsonCached,
   refreshPartition,
   getPartition,
   listPartitions,

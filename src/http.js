@@ -29,7 +29,7 @@ const agent = new RetryAgent(dispatch, {
 });
 
 module.exports = {
-  default: {
+  defaults: {
     agent,
     dispatch,
     config: agentDefaults
