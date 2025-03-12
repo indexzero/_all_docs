@@ -36,5 +36,8 @@
   "bugs": {
     "url": "https://github.com/indexzero/_all_docs/issues"
   },
-  "homepage": "https://github.com/indexzero/_all_docs#readme"
+  "homepage": "https://github.com/indexzero/_all_docs#readme",
+  "devDependencies": {
+    "npm-high-impact": "^1.10.0"
+  }
 }

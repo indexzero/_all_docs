@@ -139,6 +139,9 @@ dist
 test/fixtures/*
 scratch*
 
+# Script output
+npm-high-impact.json
+
 # All default cache directories
 cache/*
 cache*/*
