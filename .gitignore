@@ -137,6 +137,7 @@ dist
 
 # Test fixtures & scratchpads
 test/fixtures/*
+!test/fixtures/.gitkeep
 scratch*
 
 # Script output
