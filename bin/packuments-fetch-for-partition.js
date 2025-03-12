@@ -2,6 +2,7 @@ const { cachePackumentsLimit } = require('../src/packument.js');
 const { readFileSync } = require('node:fs');
 const { writeFile } = require('node:fs/promises');
 const { join } = require('node:path');
+const delay = require('delay').default;
 
 const debug = require('debug')('_all_docs/packuments-fetch-for-partition');
 
@@ -34,5 +35,10 @@ const partition = JSON.parse(
     debug('cache packument | ', { _id, _rev, cached: ++cached });
 
     writeFile(join(packumentsDir, `${_id}.json`), JSON.stringify(packument));
-  }, limit);
+  }, {
+    limit,
+    cacheDir: packumentsDir
+  });
+
+  await delay(1000 * 30)
 })();

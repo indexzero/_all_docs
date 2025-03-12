@@ -9,7 +9,7 @@ const {
   DRY_RUN
 } = require('../src/env');
 
-const { isPartitionCached } = require('../src/cache');
+const { isJsonCached } = require('../src/cache');
 const { eachLimit } = require('../src/map-reduce');
 const { writePartition } = require('../src/index');
 
@@ -31,7 +31,7 @@ async function getPartitionRange({ limit, range }) {
 
   let misses = 0;
   await eachLimit(targets, limit, async function eachFn(partition) {
-    const cached = await isPartitionCached(partition);
+    const cached = await isJsonCached(partition.filename);
     if (!cached && !DRY_RUN) {
       misses = misses + 1;
       await writePartition({ partition });
