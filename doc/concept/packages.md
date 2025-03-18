@@ -113,7 +113,6 @@ const defaults = {
 }
 ```
 
-
 The `PartitionCache` is most useful when a full fetch of a remote `_all_docs` origin is the goal of the program. In most cases the `PackumentCache` should suffice as in the example above as the `Frame` was created from a list of `packument` names (not all packuments).
 
 A `Frame` therefore can bne configured to use its own cache, but by default uses the global `_all_docs` cache for packuments.

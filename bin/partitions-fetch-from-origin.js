@@ -12,8 +12,10 @@ const {
 const { isJsonCached } = require('../src/cache');
 const { eachLimit } = require('../src/map-reduce');
 const { writePartition } = require('../src/index');
+const { fromPivots } = require('../src/partitions');
 
-const partitions = require(process.env.PARTITIONS);
+const pivots = require(process.env.PIVOTS);
+const partitions = fromPivots(pivots);
 console.dir(partitions.length);
 
 async function getPartitionRange({ limit, range }) {
