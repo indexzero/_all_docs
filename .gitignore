@@ -142,6 +142,9 @@ scratch*
 
 # Script output
 npm-high-impact.json
+groups-*.json
+map-*.json
+reduce-*.json
 
 # All default cache directories
 cache/*
