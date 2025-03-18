@@ -82,3 +82,38 @@ const {
                // to ensure idempotency of potentially non-idempotent operations
 } = cfg.limits
 ```
+
+## `@_all_docs/frame`
+
+All operations related to _all_docs data "frames":
+
+* Set operations (add, remove, intersect, etc)
+* Run operations (i.e. map-reduce execution, reading results, etc.)
+
+> n.b. intentionally not calling these "dataframes" to avoid confusion with operations available on a pandas "dataframe"
+
+## `@_all_docs/packument`, `@_all_docs/partition`, `@_all_docs/http`
+
+Fetching, reading, and normalizing `Packument` and `Partition` instances over HTTP(S)/2
+
+## `@_all_docs/cache`
+
+A pair of `@vltpkg/cache` instances that expose the underlying shared disk caches used by default in `_all_docs`:
+
+```js
+import { PackumentCache, PartitionCache } from '@_all_docs/cache';
+
+const defaults = {
+  packuments: new PackumentCache({
+    path: cfg.xdg.packuments
+  }),
+  partitions: new PartitionCache({
+    path: cfg.xdg.partition
+  })
+}
+```
+
+
+The `PartitionCache` is most useful when a full fetch of a remote `_all_docs` origin is the goal of the program. In most cases the `PackumentCache` should suffice as in the example above as the `Frame` was created from a list of `packument` names (not all packuments).
+
+A `Frame` therefore can bne configured to use its own cache, but by default uses the global `_all_docs` cache for packuments.
