@@ -93,7 +93,6 @@ async function mapPackuments({ cacheDir, mapFn, concurrency = 10 }) {
   console.dir({ cacheDir });
   const packumentFiles = await readdir(cacheDir);
 
-  console.dir({ packumentFiles });
   return await pMap(packumentFiles, async function runFile(pFile) {
     // TODO (cjr): use join consistently to avoid API wonkiness
     // TODO (cjr): "wonkiness" is a technical term meaning:
