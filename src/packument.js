@@ -14,7 +14,7 @@ const debug = require('debug')('_all_docs/packument');
 async function getPackument(name) {
   const agent = defaults.agent;
   const options = {
-    origin: 'https://replicate.npmjs.com',
+    origin: 'https://registry.npmjs.com',
     path: `/${encodeURIComponent(name)}`,
     method: 'GET',
     headers: {
