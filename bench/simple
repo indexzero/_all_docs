@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -x
+
+/usr/bin/time -ph curl -s -o /dev/null "https://replicate.npmjs.com/_all_docs?start_key=%228%22&end_key=%229%22&include_docs=false"
+
+# n.b. 650 is the number of rows returned from the end_key query above
+/usr/bin/time -ph curl -s -o /dev/null "https://replicate.npmjs.com/_all_docs?start_key=%228%22&limit=650&include_docs=false"
