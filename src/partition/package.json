@@ -1,0 +1,21 @@
+{
+  "name": "@_all_docs/partition",
+  "description": "Fetch, cache, & operate with _all_docs-like `{ rows: [{ _id, _rev, value}] }` partitions",
+  "version": "0.0.3",
+  "main": "index.js",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/indexzero/_all_docs.git",
+    "directory": "src/partition"
+  },
+  "author": "Charlie Robbins <npm@charlie.dev>",
+  "license": "Apache-2.0",
+  "scripts": {
+    "test": "node --test test/index.test.js"
+  },
+  "bugs": {
+    "url": "https://github.com/indexzero/_all_docs/issues"
+  },
+  "homepage": "https://github.com/indexzero/_all_docs#readme"
+}

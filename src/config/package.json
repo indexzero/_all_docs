@@ -1,0 +1,21 @@
+{
+  "name": "@_all_docs/config",
+  "description": "Configuration for working with _all_docs related packages & tools",
+  "version": "0.0.3",
+  "main": "index.js",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/indexzero/_all_docs.git",
+    "directory": "src/config"
+  },
+  "author": "Charlie Robbins <npm@charlie.dev>",
+  "license": "Apache-2.0",
+  "scripts": {
+    "test": "node --test test/index.test.js"
+  },
+  "bugs": {
+    "url": "https://github.com/indexzero/_all_docs/issues"
+  },
+  "homepage": "https://github.com/indexzero/_all_docs#readme"
+}
