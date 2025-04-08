@@ -3,6 +3,7 @@
   "version": "0.0.3",
   "description": "Fetch, cache, & map/reduce :origin/{_all_docs,:packument}` documents for a set of lexographically sorted pivots by range or partition",
   "main": "src/index.js",
+  "type": "module",
   "scripts": {
     "test": "node --test test/index.test.js"
   },
@@ -38,6 +39,7 @@
   },
   "homepage": "https://github.com/indexzero/_all_docs#readme",
   "devDependencies": {
+    "jackspeak": "^4.1.0",
     "npm-high-impact": "^1.10.0"
   }
 }
