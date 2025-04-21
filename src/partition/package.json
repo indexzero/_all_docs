@@ -11,11 +11,24 @@
   },
   "author": "Charlie Robbins <npm@charlie.dev>",
   "license": "Apache-2.0",
+  "dependencies": {
+    "@_all_docs/cache": "workspace:*",
+    "@_all_docs/undtils": "workspace:*",
+    "@vltpkg/cache": "catalog:",
+    "@vltpkg/cache-unzip": "catalog:",
+    "@vltpkg/registry-client": "catalog:",
+    "@vltpkg/xdg": "catalog:",
+    "delay": "^6.0.0",
+    "p-map": "catalog:"
+  },
   "scripts": {
     "test": "node --test test/index.test.js"
   },
   "bugs": {
     "url": "https://github.com/indexzero/_all_docs/issues"
   },
-  "homepage": "https://github.com/indexzero/_all_docs#readme"
+  "homepage": "https://github.com/indexzero/_all_docs#readme",
+  "devDependencies": {
+    "rimraf": "^6.0.1"
+  }
 }
