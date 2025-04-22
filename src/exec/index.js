@@ -40,53 +40,6 @@ async function eachLimit(partitions, limit, mapFn) {
   await queue.addAll(partitions.map(prt => async() => await mapFn(prt)));
 }
 
-/**
- * Reads and parses JSON from files for each partition.
- * @param {{ partitions: Partition[], cacheDir: string, concurrency?: number }} params
- * @returns {Promise<Partition[]>}
- */
-async function mapAllDocsIndex({ partitions, cacheDir, concurrency = 10 }) {
-  let loaded = 0;
-  return await pMap(partitions, async function mapFn(partition) {
-    const { filename } = partition;
-    console.log('mapAllDocsIndex', { filename, loaded: ++loaded });
-    // TODO (cjr): use join consistently to avoid API wonkiness
-    // TODO (cjr): "wonkiness" is a technical term meaning: 
-    //             "needing cacheDir feels wonky"
-    const text = await readFile(join(cacheDir, filename), 'utf8');
-    partition._all_docs = JSON.parse(text);
-    return partition;
-  }, { concurrency });
-}
-
-/**
- * Reduces all docs index by mapping partitions and applying an optional reduction function.
- * @param {{ partitions: Partition[], cacheDir: string, reduceFn?: (row: any) => any, concurrency?: number }} params
- * @returns {Promise<any[]>}
- */
-async function reduceAllDocsIndex({ partitions, cacheDir, reduceFn, concurrency = 10 }) {
-  partitions = await mapAllDocsIndex({ 
-    partitions,
-    cacheDir,
-    concurrency
-  });
-
-  return partitions.reduce((acc, partition, i) => {
-    const { _all_docs } = partition;
-    console.log('reduceAllDocsIndex', { i });
-
-    if (!_all_docs || !_all_docs.rows || !_all_docs.rows.length) {
-      return acc;
-    }
-
-    const addToIndex = reduceFn
-      ? _all_docs.rows.map(reduceFn)
-      : _all_docs.rows;
-
-    acc.push.apply(acc, addToIndex);
-    return acc;
-  }, []);
-}
 
 async function mapPackuments({ cacheDir, mapFn, concurrency = 10 }) {
   let loaded = 0;
@@ -118,6 +71,5 @@ async function mapPackuments({ cacheDir, mapFn, concurrency = 10 }) {
 module.exports = {
   eachLimit,
   mapAllDocsIndex,
-  reduceAllDocsIndex,
   mapPackuments
 };

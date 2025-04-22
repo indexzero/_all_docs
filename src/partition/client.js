@@ -12,7 +12,6 @@
 import { resolve } from 'node:path';
 
 import pMap from 'p-map';
-import delay from 'delay';
 import { RegistryClient, CacheEntry } from '@vltpkg/registry-client';
 import { XDG } from '@vltpkg/xdg';
 import { Cache } from '@vltpkg/cache'

@@ -14,32 +14,26 @@
   "dependencies": {
     "debug": "^4.4.0",
     "delay": "^6.0.0",
+    "jackspeak": "^4.1.0",
     "minimist": "^1.2.8",
     "nano": "^10.1.4",
-    "p-debounce": "^4.0.0",
-    "p-map": "^7.0.3",
-    "p-map-series": "^3.0.0",
+    "p-map": "catalog:",
+    "p-map-series": "catalog:",
     "p-queue": "^8.1.0",
-    "p-retry": "^6.2.1",
-    "undici": "^7.4.0"
+    "undici": "catalog:"
+  },
+  "devDependencies": {
+    "npm-high-impact": "^1.10.0"
   },
   "keywords": [
     "relax",
     "couchdb",
     "_all_docs"
   ],
-  "bin": {
-    "_all_docs_from_origin": "bin/partitions-fetch-from-origin.js",
-    "_all_docs_partipacku": "bin/packuments-fetch-for-partition.js"
-  },
   "author": "Charlie Robbins <npm@charlie.dev>",
   "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/indexzero/_all_docs/issues"
   },
-  "homepage": "https://github.com/indexzero/_all_docs#readme",
-  "devDependencies": {
-    "jackspeak": "^4.1.0",
-    "npm-high-impact": "^1.10.0"
-  }
+  "homepage": "https://github.com/indexzero/_all_docs#readme"
 }

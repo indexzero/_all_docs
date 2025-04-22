@@ -18,7 +18,6 @@
     "@vltpkg/cache-unzip": "catalog:",
     "@vltpkg/registry-client": "catalog:",
     "@vltpkg/xdg": "catalog:",
-    "delay": "^6.0.0",
     "p-map": "catalog:"
   },
   "scripts": {
