@@ -12,6 +12,7 @@
 import { resolve } from 'node:path';
 
 import pMap from 'p-map';
+import pMapSeries from 'p-map-series';
 import { RegistryClient, CacheEntry } from '@vltpkg/registry-client';
 import { XDG } from '@vltpkg/xdg';
 import { Cache } from '@vltpkg/cache'
@@ -43,7 +44,7 @@ const agentOptions = {
 
 const xdg = new XDG('_all_docs');
 
-export class AllDocsPartitionClient extends RegistryClient {
+export class PartitionClient extends RegistryClient {
   constructor(options = {}) {
     // Override the cache to be a location that we wish it to be
     const cache = options.cache = options.cache || xdg.cache();
@@ -53,7 +54,7 @@ export class AllDocsPartitionClient extends RegistryClient {
       path,
       onDiskWrite(_path, key, data) {
         if (CacheEntry.isGzipEntry(data)) {
-          cacheUnzipRegister(path, key)
+          //cacheUnzipRegister(path, key)
         }
       },
     });
@@ -92,8 +93,8 @@ export class AllDocsPartitionClient extends RegistryClient {
 
   async request({ startKey, endKey }, options = {}) {
     const url = new URL(`_all_docs`, this.origin);
-    url.searchParams.set('startkey', `"${encodeURIComponent(startKey)}"`);
-    url.searchParams.set('endkey', `"${encodeURIComponent(endKey)}"`);
+    url.searchParams.set('startkey', `"${startKey}"`);
+    url.searchParams.set('endkey', `"${endKey}"`);
 
     options.headers = {
       ...options.headers,
@@ -121,11 +122,11 @@ export class AllDocsPartitionClient extends RegistryClient {
       return entry;
     }
 
-    if (staleWhileRevalidate && entry?.staleWhileRevalidate) {
-      // revalidate while returning the stale entry
-      register(this.cache.path(), true, url);
-      return entry;
-    }
+    // if (staleWhileRevalidate && entry?.staleWhileRevalidate) {
+    //   // revalidate while returning the stale entry
+    //   register(this.cache.path(), true, url);
+    //   return entry;
+    // }
 
     // either no cache entry, or need to revalidate before use.
     setCacheHeaders(options, entry);
@@ -140,7 +141,9 @@ export class AllDocsPartitionClient extends RegistryClient {
 
     console.log(`${this.origin}/_all_docs${url.search}`);
     const result = await this.#handleResponse(url, options, await this.agent.request(options));
-    if (cache) {
+
+    const { refresh = false } = options;
+    if (cache || refresh) {
       this.cache.set(key, result.encode());
     }
 

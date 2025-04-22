@@ -6,7 +6,7 @@ import { Cache } from '@_all_docs/cache';
 
 export const command = async cli => {
   // TODO: this should be --pivots and not in the splat
-  const { pivots } = await import(resolve(process.cwd(), cli._[0]));
+  const { pivots } = await import(resolve(process.cwd(), cli.values.pivots));
   const partitions = PartitionSet.fromPivots(cli.values.origin, pivots);
 
   const cache = new Cache({ path: cli.dir('partitions') });
@@ -32,8 +32,7 @@ export const command = async cli => {
 // import { PartitionFrame } from '@_all_docs/frame';
 //
 // export const command = async cli => {
-//   // TODO: this should be --pivots and not in the splat
-//   const { pivots } = await import(resolve(process.cwd(), cli._[0]));
+//   const { pivots } = await import(resolve(process.cwd(), cli.values.pivots));
 //   const set = PartitionSet.fromPivots(cli.values.origin, pivots);
 //
 //   const missing = await Array.fromAsync(

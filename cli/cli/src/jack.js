@@ -75,6 +75,55 @@ const cli = ack
     }
   })
 
+  .opt({
+    start: {
+      hint: 'string',
+      description: `Sets the start key for use with /_all_docs requests
+
+                    For example, \`GET /_all_docs?startkey=foo\`
+                    will be requested from this registry origin.
+      `,
+    },
+    end: {
+      hint: 'string',
+      description: `Sets the end key for use with /_all_docs requests
+
+                    For example, \`GET /_all_docs?endkey=foo\`
+                    will be requested from this registry origin.
+      `,
+    },
+  })
+
+  .flag({
+    refresh: {
+      short: 'r',
+      default: false,
+      description: `Refresh the local disk cache for this request.`,
+    },
+    'no-refresh': {
+      short: 'R',
+      description: 'Do not refresh the local disk cache for this request.',
+    },
+    cache: {
+      short: 'd',
+      default: true,
+      description: `Read from the local disk cache (if available).`,
+    },
+    'no-cache': {
+      short: 'D',
+      description: 'Do not read from the local disk cache.',
+    }
+  })
+
+  .opt({
+    pivots: {
+      hint: 'path',
+      description: `Path to JavaScript file from which pivots
+                    are exported from
+      `,
+    },
+  })
+
   .flag({
     version: {
       short: 'v',

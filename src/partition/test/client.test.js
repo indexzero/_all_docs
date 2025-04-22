@@ -3,14 +3,14 @@ import { rimraf } from 'rimraf';
 import { join } from 'node:path';
 import { ok } from 'node:assert/strict';
 
-import { AllDocsPartitionClient } from '../client.js';
+import { PartitionClient } from '../client.js';
 
 const fixtures = join(import.meta.dirname, 'fixtures');
 
 
 describe('_all_docs/client', () => {
   it('.request({ 8, 9 }) returns a valid cache entry', async () => {
-    const client = new AllDocsPartitionClient({
+    const client = new PartitionClient({
       origin: 'https://replicate.npmjs.com',
       cache: fixtures
     });
@@ -31,7 +31,7 @@ describe('_all_docs/client', () => {
   });
 
   it('.request({ 7, 8 }) returns a cache entry', async () => {
-    const client = new AllDocsPartitionClient({
+    const client = new PartitionClient({
       origin: 'https://replicate.npmjs.com',
       cache: fixtures
     });
@@ -49,7 +49,7 @@ describe('_all_docs/client', () => {
   });
 
   it('.requestAll([...rest]) returns cache entries', async () => {
-    const client = new AllDocsPartitionClient({
+    const client = new PartitionClient({
       origin: 'https://replicate.npmjs.com',
       cache: fixtures
     });

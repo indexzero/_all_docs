@@ -15,6 +15,7 @@
     "@_all_docs/cache": "workspace:*",
     "@_all_docs/config": "workspace:*",
     "@_all_docs/frame": "workspace:*",
+    "@_all_docs/packument": "workspace:*",
     "@_all_docs/partition": "workspace:*",
     "@vltpkg/error-cause": "0.0.0-9",
     "p-map": "catalog:"

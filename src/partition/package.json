@@ -13,12 +13,12 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@_all_docs/cache": "workspace:*",
-    "@_all_docs/undtils": "workspace:*",
     "@vltpkg/cache": "catalog:",
     "@vltpkg/cache-unzip": "catalog:",
     "@vltpkg/registry-client": "catalog:",
     "@vltpkg/xdg": "catalog:",
-    "p-map": "catalog:"
+    "p-map": "catalog:",
+    "p-map-series": "catalog:"
   },
   "scripts": {
     "test": "node --test test/index.test.js"

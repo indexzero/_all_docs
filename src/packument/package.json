@@ -9,6 +9,12 @@
     "url": "git+https://github.com/indexzero/_all_docs.git",
     "directory": "src/packument"
   },
+  "dependencies": {
+    "@vltpkg/cache": "catalog:",
+    "@vltpkg/cache-unzip": "catalog:",
+    "@vltpkg/registry-client": "catalog:",
+    "@vltpkg/xdg": "catalog:"
+  },
   "author": "Charlie Robbins <npm@charlie.dev>",
   "license": "Apache-2.0",
   "scripts": {

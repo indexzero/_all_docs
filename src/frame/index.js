@@ -104,7 +104,7 @@ class PartitionFrame extends Frame {
   static fromCache(path) {
     return new PartitionFrame(
       new Cache({ path })
-        .map(Partition.fromCacheWalk)
+        .map(Partition.fromCacheEntry)
     );
   }
 }
