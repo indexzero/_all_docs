@@ -1,13 +1,17 @@
 {
-  "name": "@_all_docs/config",
-  "description": "Configuration for working with _all_docs related packages & tools",
+  "name": "@_all_docs/frame",
+  "description": "All operations related to _all_docs data 'frames'",
   "version": "0.0.3",
   "main": "index.js",
   "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/indexzero/_all_docs.git",
-    "directory": "src/config"
+    "directory": "src/frame"
+  },
+  "dependencies": {
+    "@_all_docs/cache": "workspace:*",
+    "@_all_docs/partition": "workspace:*"
   },
   "author": "Charlie Robbins <npm@charlie.dev>",
   "license": "Apache-2.0",
@@ -17,8 +21,5 @@
   "bugs": {
     "url": "https://github.com/indexzero/_all_docs/issues"
   },
-  "homepage": "https://github.com/indexzero/_all_docs#readme",
-  "dependencies": {
-    "@vltpkg/xdg": "catalog:"
-  }
+  "homepage": "https://github.com/indexzero/_all_docs#readme"
 }

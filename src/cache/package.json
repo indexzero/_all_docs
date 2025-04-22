@@ -17,5 +17,9 @@
   "bugs": {
     "url": "https://github.com/indexzero/_all_docs/issues"
   },
-  "homepage": "https://github.com/indexzero/_all_docs#readme"
+  "homepage": "https://github.com/indexzero/_all_docs#readme",
+  "dependencies": {
+    "@vltpkg/cache": "catalog:",
+    "@vltpkg/registry-client": "catalog:"
+  }
 }

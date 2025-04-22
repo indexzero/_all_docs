@@ -1,18 +1,31 @@
-import { basename } from 'path';
 import URL from 'node:url';
 
 import { CacheEntry } from '@vltpkg/registry-client';
 
+import { AllDocsPartitionClient } from './client.js';
+import { PartitionSet } from './set.js';
+
 class Partition {
   #rows = [];
+  #raw = [];
+  #key = null;
 
-  constructor({ startKey, endKey, dirname, rows }) {
+  constructor({ startKey, endKey, origin, rows }) {
     this.startKey = startKey;
     this.endKey = endKey;
-    this.id = `${startKey}___${endKey}`;
-    this.dirname = dirname;
-    this.filename = `${this.id}.json`;
     this.#rows = rows || [];
+
+    this.#raw = [
+      origin,
+      // TODO (0): Remove unnecessary strings here
+      'GET', '_all_docs', 'startkey',
+      startKey,
+      // TODO (0): Remove unnecessary strings here
+      'endkey',
+      endKey
+    ];
+
+    this.#key = JSON.stringify(this.#raw);
   }
 
   get rows() {
@@ -23,59 +36,44 @@ class Partition {
     this.#rows = rows;
   }
 
-  async read(source) {
-    const fullpath = join(source ?? this.dirname, this.filename);
-    const text = await readFile(fullpath, 'utf8');
-    const _all_docs = JSON.parse(text);
-    this.#rows = _all_docs.rows;
-  }
-
-  async readSync(source) {
-    const fullpath = join(source ?? this.dirname, this.filename);
-    const text = readFileSync(fullpath, 'utf8');
-    const _all_docs = JSON.parse(text);
-    this.#rows = _all_docs.rows;
+  get key() {
+    return this.#key;
   }
 
   static fromURL(u) {
-    const where = new URL(u);
+    const url = new URL.URL(u);
+    const { searchParams } = url;
 
-    const startKey = where.searchParams.get('start_key');
-    const endKey = where.searchParams.get('end_key');
+    const startKey = searchParams.get('startkey');
+    const endKey = searchParams.get('endkey');
+    const origin = url.origin;
 
-    return new Partition({ startKey, endKey });
+    return new Partition({ startKey, endKey, origin });
+  }
+
+  static fromCacheKey(key) {
+    const where = JSON.parse(key);
+
+    const origin = where[0];
+    const startKey = where[4];
+    const endKey = where[6];
+
+    return new Partition({ startKey, endKey, origin });
   }
 
   static fromCacheWalk([key, val]) {
-    const p = Partition.fromURL(key);
+    const p = Partition.fromCacheKey(key);
 
     const entry = CacheEntry.decode(val);
-    p.rows = entry.json();
+    const body = entry.json();
+    p.rows = body.rows;
 
     return p;
-  }
-
-  /**
-   * Converts a filename into a Partition object.
-   * @param {string} filename
-   * @returns {Partition}
-   */
-  static fromFilename(filename) {
-    const id = basename(filename, '.json');
-    const [startKey, endKey] = id.split('___');
-    return new Partition({ startKey, endKey });
-  }
-
-  static fromPivots(pivots) {
-    return pivots.map((startKey, i) => {
-      const endKey = pivots[i + 1];
-      return endKey
-        ? new Partition({ startKey, endKey })
-        : null;
-    }).filter(Boolean);
   }
 }
 
 export {
-  Partition
+  AllDocsPartitionClient,
+  Partition,
+  PartitionSet
 }

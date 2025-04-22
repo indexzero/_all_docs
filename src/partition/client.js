@@ -18,12 +18,11 @@ import { XDG } from '@vltpkg/xdg';
 import { Cache } from '@vltpkg/cache'
 import { register as cacheUnzipRegister } from '@vltpkg/cache-unzip'
 
-
-
 // Here. Be. Dragons. 🐲
-import tariff from './tariff.js';
-const { setCacheHeaders } = await tariff('set-cache-headers.js');
-const { addHeader } = await tariff('add-header.js');
+import unstable from './unstable.js';
+const { setCacheHeaders } = await unstable('set-cache-headers.js');
+const { addHeader } = await unstable('add-header.js');
+const { register } = await unstable('cache-revalidate.js');
 
 // Remark (0): these probably don't belong here, but < 1.0.0 so <shrug>
 const userAgent = '_all_docs/0.1.0';
@@ -39,7 +38,7 @@ const agentOptions = {
     keepAliveInitialDelay: 30_000,
     sessionTimeout: 600,
   },
-  connections: 128,
+  connections: 256,
   pipelining: 10
 };
 
@@ -55,7 +54,6 @@ export class AllDocsPartitionClient extends RegistryClient {
       path,
       onDiskWrite(_path, key, data) {
         if (CacheEntry.isGzipEntry(data)) {
-          console.log('isGzipEntry', _path, key);
           cacheUnzipRegister(path, key)
         }
       },
@@ -89,16 +87,6 @@ export class AllDocsPartitionClient extends RegistryClient {
 
       return entry;
     }, { concurrency: limit });
-
-    // TODO (0): this should be configurable;
-    if (misses === 0) {
-      console.log("No misses, waiting 10ms");
-      await delay(10);
-    } else {
-      const wait = 60 * misses;
-      console.log(`${misses} Misses, waiting ${wait / 1000}s`);
-      await delay(wait);
-    }
 
     return entries;
   }
@@ -150,15 +138,17 @@ export class AllDocsPartitionClient extends RegistryClient {
     options.origin = url.origin;
     options.headers = addHeader(addHeader(options.headers, 'accept-encoding', 'gzip;q=1.0, identity;q=0.5'), 'user-agent', userAgent);
     options.method = 'GET';
-    const result = await this.#handleResponse(options, await this.agent.request(options));
-    if (cache) { 
+
+    console.log(`${this.origin}/_all_docs${url.search}`);
+    const result = await this.#handleResponse(url, options, await this.agent.request(options));
+    if (cache) {
       this.cache.set(key, result.encode());
     }
 
     return result;
   }
 
-  async #handleResponse(options, response) {
+  async #handleResponse(url, options, response) {
     const h = [];
     for (const [key, value] of Object.entries(response.headers)) {
       /* c8 ignore start - theoretical */
@@ -171,6 +161,8 @@ export class AllDocsPartitionClient extends RegistryClient {
       }
     }
     const { integrity, trustIntegrity } = options;
+
+    console.log(`${this.origin}/_all_docs${url.search} ${response.statusCode}`);
     const result = new CacheEntry(
       /* c8 ignore next - should always have a status code */
       response.statusCode || 200,

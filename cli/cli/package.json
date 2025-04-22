@@ -11,6 +11,17 @@
   },
   "author": "Charlie Robbins <npm@charlie.dev>",
   "license": "Apache-2.0",
+  "dependencies": {
+    "@_all_docs/cache": "workspace:*",
+    "@_all_docs/config": "workspace:*",
+    "@_all_docs/frame": "workspace:*",
+    "@_all_docs/partition": "workspace:*",
+    "@vltpkg/error-cause": "0.0.0-9",
+    "p-map": "catalog:"
+  },
+  "bin": {
+    "_all_docs": "bin/all-docs-cli.js"
+  },
   "scripts": {
     "test": "node --test test/index.test.js"
   },
