@@ -1,3 +1,4 @@
+/*
 const { cachePackumentsSeries, getPackumentsLimit } = require('../src/packument.js');
 const { readFileSync } = require('node:fs');
 const { writeFile } = require('node:fs/promises');
@@ -35,3 +36,11 @@ const indexEntries = readFileSync(indexFilename, 'utf8')
     writeFile(join(packumentsDir, `${_id}.json`), JSON.stringify(packument));
   }, { cacheDir });
 })();
+*/
+
+export const command = async cli => {
+  console.log('-- Currently bankrupt in Chapter 11 reorganization --');
+  console.log('Fetch all packuments from a rev index');
+  console.log('-- Currently bankrupt in Chapter 11 reorganization --');
+}
+

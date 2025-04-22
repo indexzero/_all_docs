@@ -1,3 +1,5 @@
+/*
+
 const { mapPackuments } = require('../src/map-reduce.js');
 const { writeFile } = require('node:fs/promises');
 const { join } = require('node:path');
@@ -44,3 +46,11 @@ const { map, reduce, group } = view;
     await writeFile(`groups-${sid}.json`, JSON.stringify(groups, null, 2), 'utf8');
   }
 })();
+
+*/
+
+export const command = async cli => {
+  console.log('-- Currently bankrupt in Chapter 11 reorganization --');
+  console.log('Run map-reduce on packuments');
+  console.log('-- Currently bankrupt in Chapter 11 reorganization --');
+}

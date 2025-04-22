@@ -1,3 +1,4 @@
+/*
 const { cachePackumentsLimit } = require('../src/packument.js');
 const { readFileSync } = require('node:fs');
 const { writeFile } = require('node:fs/promises');
@@ -42,3 +43,11 @@ const partition = JSON.parse(
 
   await delay(1000 * 30)
 })();
+
+*/
+
+export const command = async cli => {
+  console.log('-- Currently bankrupt in Chapter 11 reorganization --');
+  console.log('Fetch all packuments for a partitions');
+  console.log('-- Currently bankrupt in Chapter 11 reorganization --');
+}

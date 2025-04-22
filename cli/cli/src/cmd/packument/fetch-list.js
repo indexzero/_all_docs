@@ -1,3 +1,4 @@
+/*
 const { cachePackumentsLimit } = require('../src/packument.js');
 const { writeFile } = require('node:fs/promises');
 const { join } = require('node:path');
@@ -48,3 +49,10 @@ const list = require(filename);
     }
   }
 })();
+*/
+
+export const command = async cli => {
+  console.log('-- Currently bankrupt in Chapter 11 reorganization --');
+  console.log('Fetch all packuments from list provided');
+  console.log('-- Currently bankrupt in Chapter 11 reorganization --');
+}

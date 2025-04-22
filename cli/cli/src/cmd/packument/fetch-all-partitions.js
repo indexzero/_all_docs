@@ -1,3 +1,5 @@
+/*
+
 const { listPartitionsSync } = require('../src/cache.js');
 const { join } = require('node:path');
 const { execSync, spawn } = require('node:child_process');
@@ -27,3 +29,11 @@ function execFetchPackuments(partition) {
 }
 
 partitions.forEach(execFetchPackuments);
+
+*/
+
+export const command = async cli => {
+  console.log('-- Currently bankrupt in Chapter 11 reorganization --');
+  console.log('Fetch all packuments for all partitions');
+  console.log('-- Currently bankrupt in Chapter 11 reorganization --');
+}
