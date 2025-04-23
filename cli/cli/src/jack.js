@@ -124,6 +124,24 @@ const cli = ack
     },
   })
 
+  .opt({
+    design: {
+      hint: 'path',
+      description: `Path to JavaScript design document on which
+                    the [exec].{view, map, reduce} functions are
+                    defined.
+      `,
+    },
+    exec: {
+      hint: 'string',
+      description: `Named design document property on which
+                    the { view, map, reduce } functions to be
+                    executed are defined.
+      `,
+    }
+  })
+
+
   .flag({
     version: {
       short: 'v',

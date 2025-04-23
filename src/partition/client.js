@@ -12,7 +12,6 @@
 import { resolve } from 'node:path';
 
 import pMap from 'p-map';
-import pMapSeries from 'p-map-series';
 import { RegistryClient, CacheEntry } from '@vltpkg/registry-client';
 import { XDG } from '@vltpkg/xdg';
 import { Cache } from '@vltpkg/cache'
@@ -23,6 +22,8 @@ import unstable from './unstable.js';
 const { setCacheHeaders } = await unstable('set-cache-headers.js');
 const { addHeader } = await unstable('add-header.js');
 const { register } = await unstable('cache-revalidate.js');
+
+import { Partition } from './index.js';
 
 // Remark (0): these probably don't belong here, but < 1.0.0 so <shrug>
 const userAgent = '_all_docs/0.1.0';
@@ -54,7 +55,7 @@ export class PartitionClient extends RegistryClient {
       path,
       onDiskWrite(_path, key, data) {
         if (CacheEntry.isGzipEntry(data)) {
-          //cacheUnzipRegister(path, key)
+          cacheUnzipRegister(path, key)
         }
       },
     });
@@ -93,8 +94,14 @@ export class PartitionClient extends RegistryClient {
 
   async request({ startKey, endKey }, options = {}) {
     const url = new URL(`_all_docs`, this.origin);
-    url.searchParams.set('startkey', `"${startKey}"`);
-    url.searchParams.set('endkey', `"${endKey}"`);
+    if (startKey) url.searchParams.set('startkey', `"${startKey}"`);
+    if (endKey)   url.searchParams.set('endkey', `"${endKey}"`);
+
+    // Always get as much as we can for each partition
+    // TODO (0): when we receive 10000 rows, we should
+    // surface a warning because the partition is too
+    // large to be served
+    url.searchParams.set('limit', 10000);
 
     options.headers = {
       ...options.headers,
@@ -111,7 +118,7 @@ export class PartitionClient extends RegistryClient {
     signal?.throwIfAborted();
 
     // first, try to get from the cache before making any request.
-    const key = JSON.stringify([this.origin, 'GET', '_all_docs', 'startkey', startKey, 'endkey', endKey]);
+    const key = Partition.cacheKey(startKey, endKey, this.origin);
     const buffer = cache
       ? await this.cache.fetch(key, { context: { integrity } })
       : undefined;
@@ -122,11 +129,11 @@ export class PartitionClient extends RegistryClient {
       return entry;
     }
 
-    // if (staleWhileRevalidate && entry?.staleWhileRevalidate) {
-    //   // revalidate while returning the stale entry
-    //   register(this.cache.path(), true, url);
-    //   return entry;
-    // }
+    if (staleWhileRevalidate && entry?.staleWhileRevalidate) {
+      // revalidate while returning the stale entry
+      register(this.cache.path(), true, url);
+      return entry;
+    }
 
     // either no cache entry, or need to revalidate before use.
     setCacheHeaders(options, entry);

@@ -1,5 +1,8 @@
+import { pMapIterable } from 'p-map';
+
 import { Cache } from '@_all_docs/cache';
 import { Partition } from '@_all_docs/partition';
+import { Packument } from '@_all_docs/packument';
 
 class Frame {
   #options = {}
@@ -43,7 +46,7 @@ class Frame {
   }
 
   // This may need to be in its own module for mixins
-  map(fn) {
+  map(fn, options) {
     const frame = this;
     return {
       *[Symbol.iterator]() {
@@ -52,13 +55,10 @@ class Frame {
         }
       },
 
-      async *[Symbol.asyncIterator]() {
-        for await (const entry of frame) {
-          yield fn(entry)
-        }
-      }
+      ...pMapIterable(frame, fn, options)
     }
   }
+
 
   reduce(fn, initialValue) {
     let accumulator = initialValue;
@@ -93,6 +93,13 @@ class Frame {
 class PackumentFrame extends Frame {
   constructor(iter, options) {
     super(iter, options);
+  }
+
+  static fromCache(path) {
+    return new PartitionFrame(
+      new Cache({ path })
+        .map(Packument.fromCacheEntry)
+    );
   }
 }
 

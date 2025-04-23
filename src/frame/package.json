@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@_all_docs/cache": "workspace:*",
+    "@_all_docs/packument": "workspace:*",
     "@_all_docs/partition": "workspace:*"
   },
   "author": "Charlie Robbins <npm@charlie.dev>",

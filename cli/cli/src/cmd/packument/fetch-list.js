@@ -7,7 +7,6 @@ export const command = async cli => {
   const fullpath = resolve(process.cwd(), cli._[0] ?? 'npm-high-impact.json');
   const filename = basename(fullpath);
 
-  console.dir(fullpath);
   const { default:packageNames } = await import(fullpath, { with: { type: 'json' } });
   const { length } = packageNames;
 

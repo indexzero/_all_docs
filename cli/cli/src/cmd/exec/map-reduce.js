@@ -1,56 +1,45 @@
-/*
+import { resolve } from 'node:path';
 
-const { mapPackuments } = require('../src/map-reduce.js');
-const { writeFile } = require('node:fs/promises');
-const { join } = require('node:path');
-const crypto = require('node:crypto');
+import { execId } from '@_all_docs/exec';
+import { PackumentFrame } from '@_all_docs/frame';
 
-function shortId(length) {
-  return crypto.randomBytes(Math.ceil(length / 2))
-    .toString('hex')
-    .slice(0, length);
-}
+export const command = async cli => {
+  const { design, exec } = cli.values;
 
-const debug = require('debug')('_all_docs/run-packuments');
+  if (!design || !exec) {
+    console.error('No design document or view name provided');
+    return;
+  }
 
-const cacheDir = join(__dirname, '..', 'cache');
-const packumentsDir = join(cacheDir, 'packuments');
+  const fullpath = resolve(process.cwd(), design);
+  const designDoc = await import(fullpath);
+  const view = designDoc.default.views[exec];
 
-const argv = require('minimist')(process.argv.slice(2));
-const { design, exec } = argv;
+  if (!view) {
+    console.error(`View ${exec} not found in design document`);
+    return;
+  }
 
-const designDoc = require(design);
-const view = designDoc.views[exec];
-const { map, reduce, group } = view;
+  const { map, reduce, group } = view;
+  const eid = execId(4);
 
-(async function () {
-  const sid = shortId(4);
-  const results = await mapPackuments({
-    cacheDir: packumentsDir,
-    mapFn: map,
-    concurrency: 100
-  });
+  const frame = PackumentFrame.fromCache(cli.dir('packuments'))
+    .map(map, { concurrency: 100 });
 
-  debug('write map output |', sid, results.length);
-  await writeFile(`map-${sid}.json`, JSON.stringify(results, null, 2), 'utf8');
+  const results = await Array.fromAsync(frame);
+
+  debug('write map output |', eid, results.length);
+  await writeFile(`map-${eid}.json`, JSON.stringify(results, null, 2), 'utf8');
 
   if (reduce) {
     const reduced = reduce(results);
-    debug('write reduce output |', sid);
-    await writeFile(`reduce-${sid}.json`, JSON.stringify(reduced, null, 2), 'utf8');
+    debug('write reduce output |', eid);
+    await writeFile(`reduce-${eid}.json`, JSON.stringify(reduced, null, 2), 'utf8');
   }
 
   if (group) {
     const groups = group(results);
-    debug('write group output |', sid);
-    await writeFile(`groups-${sid}.json`, JSON.stringify(groups, null, 2), 'utf8');
+    debug('write group output |', eid);
+    await writeFile(`groups-${eid}.json`, JSON.stringify(groups, null, 2), 'utf8');
   }
-})();
-
-*/
-
-export const command = async cli => {
-  console.log('-- Currently bankrupt in Chapter 11 reorganization --');
-  console.log('Run map-reduce on packuments');
-  console.log('-- Currently bankrupt in Chapter 11 reorganization --');
 }

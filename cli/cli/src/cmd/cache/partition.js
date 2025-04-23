@@ -18,5 +18,5 @@ export const command = async cli => {
 
   const partition = Partition.fromCacheEntry([key, val]);
 
-  console.dir(partition.rows);
+  console.log(partition);
 }

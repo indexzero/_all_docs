@@ -72,6 +72,9 @@ importers:
       '@_all_docs/config':
         specifier: workspace:*
         version: link:../../src/config
+      '@_all_docs/exec':
+        specifier: workspace:*
+        version: link:../../src/exec
       '@_all_docs/frame':
         specifier: workspace:*
         version: link:../../src/frame
@@ -112,6 +115,9 @@ importers:
       '@_all_docs/cache':
         specifier: workspace:*
         version: link:../cache
+      '@_all_docs/packument':
+        specifier: workspace:*
+        version: link:../packument
       '@_all_docs/partition':
         specifier: workspace:*
         version: link:../partition
