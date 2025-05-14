@@ -48,9 +48,12 @@ export const command = async cli => {
   const index = await createRevIndex({ source, format });
   const fullpath = join(source, filename);
 
-  return {
-    action: 'write',
-    fullpath,
-    utf8: index
-  };
+  process.stdout.write(index);
+
+  // TODO (0): better handle final output step
+  // return {
+  //   action: 'write',
+  //   fullpath,
+  //   utf8: index
+  // };
 }
