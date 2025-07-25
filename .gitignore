@@ -150,3 +150,7 @@ reduce-*.json
 cache/*
 cache*/*
 !cache/.gitkeep
+
+# AI Slopsters
+CLAUDE.md
+.claude
