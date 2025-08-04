@@ -39,7 +39,7 @@ async function requestAll(partitions, options) {
 
   const ranges = Array.from(
     { length: Math.ceil(parts.length / size) },
-    (_, i) => parts.slice(i * size, i * size + size)
+    (_, i) => parts.slice(i * size, (i * size) + size)
   );
 
   for await (const range of ranges) {

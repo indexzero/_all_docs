@@ -14,6 +14,7 @@
     "@vltpkg/cache-unzip": "catalog:",
     "@vltpkg/registry-client": "catalog:",
     "@vltpkg/xdg": "catalog:",
+    "debug": "^4.4.1",
     "p-map": "catalog:"
   },
   "author": "Charlie Robbins <npm@charlie.dev>",

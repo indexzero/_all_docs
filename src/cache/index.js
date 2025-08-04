@@ -4,6 +4,7 @@ import { Cache as HttpBufferCache } from '@vltpkg/cache';
 // using `@vltpkg/cache` for now to avoid having to reimplement the wheel
 class Cache extends HttpBufferCache {
   map(fn) {
+    // eslint-disable-next-line unicorn/no-this-assignment
     const frame = this;
     return {
       * [Symbol.iterator]() {

@@ -10,7 +10,7 @@ class Frame {
     if (
       !iterable
       || (typeof iterable[Symbol.iterator] !== 'function'
-      	&& typeof iterable[Symbol.asyncIterator] !== 'function')
+        && typeof iterable[Symbol.asyncIterator] !== 'function')
     ) {
       throw new TypeError('Provided value is not iterable');
     }
@@ -48,6 +48,7 @@ class Frame {
 
   // This may need to be in its own module for mixins
   map(fn, options) {
+    // eslint-disable-next-line unicorn/no-this-assignment
     const frame = this;
     return {
       * [Symbol.iterator]() {
@@ -70,6 +71,7 @@ class Frame {
   }
 
   filter(fn) {
+    // eslint-disable-next-line unicorn/no-this-assignment
     const frame = this;
     return {
       * [Symbol.iterator]() {

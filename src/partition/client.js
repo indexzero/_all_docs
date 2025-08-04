@@ -11,15 +11,17 @@
 
 import { Buffer } from 'node:buffer';
 import { resolve } from 'node:path';
+import debuglog from 'debug';
 import pMap from 'p-map';
 import { RegistryClient, CacheEntry } from '@vltpkg/registry-client';
 import { XDG } from '@vltpkg/xdg';
 import { Cache } from '@vltpkg/cache';
-import { register as cacheUnzipRegister } from '@vltpkg/cache-unzip';
-
+import { cacheUnzipRegister } from '@vltpkg/cache-unzip';
 // Here. Be. Dragons. 🐲
 import unstable from './unstable.js';
 import { Partition } from './index.js';
+
+const debug = debuglog('_all_docs:partition:client');
 
 const { setCacheHeaders } = await unstable('set-cache-headers.js');
 const { addHeader } = await unstable('add-header.js');
@@ -48,7 +50,9 @@ const xdg = new XDG('_all_docs');
 export class PartitionClient extends RegistryClient {
   constructor(options = {}) {
     // Override the cache to be a location that we wish it to be
-    const cache = options.cache = options.cache || xdg.cache();
+    options.cache ??= xdg.cache();
+    const { cache } = options;
+
     super(options);
     const path = resolve(cache, 'partitions');
     this.cache = new Cache({
@@ -89,6 +93,7 @@ export class PartitionClient extends RegistryClient {
       return entry;
     }, { concurrency: limit });
 
+    debug('requestAll |', entries.length, 'misses:', misses);
     return entries;
   }
 

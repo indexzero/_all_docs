@@ -5,7 +5,7 @@ import debuglog from 'debug';
 import { execId } from '@_all_docs/exec';
 import { PackumentFrame } from '@_all_docs/frame';
 
-const debug = debuglog('_all_docs:cmd:exec:map-reduce'); // eslint-disable-line new-cap
+const debug = debuglog('_all_docs:cmd:exec:map-reduce');
 
 export const command = async cli => {
   const { design, exec } = cli.values;
@@ -27,7 +27,9 @@ export const command = async cli => {
   const { map, reduce, group } = view;
   const eid = execId(4);
 
-  const frame = PackumentFrame.fromCache(cli.dir('packuments'))
+  const frame = PackumentFrame
+    .fromCache(cli.dir('packuments'))
+    // eslint-disable-next-line unicorn/no-array-method-this-argument
     .map(map, { concurrency: 100 });
 
   const results = await Array.fromAsync(frame);

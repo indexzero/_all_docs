@@ -10,17 +10,22 @@
  */
 
 import { resolve } from 'node:path';
+import debuglog from 'debug';
 import pMap from 'p-map';
 import { RegistryClient, CacheEntry } from '@vltpkg/registry-client';
 import { XDG } from '@vltpkg/xdg';
 import { Cache } from '@vltpkg/cache';
+import { cacheUnzipRegister } from '@vltpkg/cache-unzip';
 
 const xdg = new XDG('_all_docs');
+const debug = debuglog('_all_docs:partition:client');
 
 export class PackumentClient extends RegistryClient {
   constructor(options = {}) {
     // Override the cache to be a location that we wish it to be
-    const cache = options.cache = options.cache || xdg.cache();
+    options.cache ??= xdg.cache();
+    const { cache } = options;
+
     super(options);
     const path = resolve(cache, 'packuments');
     this.cache = new Cache({
@@ -62,6 +67,7 @@ export class PackumentClient extends RegistryClient {
       return entry;
     }, { concurrency: limit });
 
+    debug('requestAll |', entries.length, 'misses:', misses);
     return entries;
   }
 

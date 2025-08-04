@@ -21,13 +21,14 @@ async function createRevIndex({ source, format }) {
 
   // TODO (0): display progress as it is being created
   const index = PartitionFrame.fromCache(source)
-    .reduce((acc, partition, i) => {
+    .reduce((acc, partition) => {
       const { rows } = partition;
 
       const addToIndex = format === 'append-only'
         ? rows.map(entryToTuple)
         : rows;
 
+      // eslint-disable-next-line prefer-spread
       acc.push.apply(acc, addToIndex);
       return acc;
     }, []);
