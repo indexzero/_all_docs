@@ -10,20 +10,19 @@
  */
 
 import { resolve } from 'node:path';
-
 import pMap from 'p-map';
 import { RegistryClient, CacheEntry } from '@vltpkg/registry-client';
 import { XDG } from '@vltpkg/xdg';
-import { Cache } from '@vltpkg/cache'
-import { register as cacheUnzipRegister } from '@vltpkg/cache-unzip'
+import { Cache } from '@vltpkg/cache';
+import { register as cacheUnzipRegister } from '@vltpkg/cache-unzip';
 
 // Here. Be. Dragons. 🐲
 import unstable from './unstable.js';
+import { Partition } from './index.js';
+
 const { setCacheHeaders } = await unstable('set-cache-headers.js');
 const { addHeader } = await unstable('add-header.js');
 const { register } = await unstable('cache-revalidate.js');
-
-import { Partition } from './index.js';
 
 // Remark (0): these probably don't belong here, but < 1.0.0 so <shrug>
 const userAgent = '_all_docs/0.1.0';
@@ -37,7 +36,7 @@ const agentOptions = {
     timeout: 600_000,
     keepAlive: true,
     keepAliveInitialDelay: 30_000,
-    sessionTimeout: 600,
+    sessionTimeout: 600
   },
   connections: 256,
   pipelining: 10
@@ -55,15 +54,15 @@ export class PartitionClient extends RegistryClient {
       path,
       onDiskWrite(_path, key, data) {
         if (CacheEntry.isGzipEntry(data)) {
-          cacheUnzipRegister(path, key)
+          cacheUnzipRegister(path, key);
         }
-      },
+      }
     });
 
     // Grab our own options out of it
     this.origin = options.origin;
     this.dryRun = options.dryRun;
-    this.limit  = options.limit || 10;
+    this.limit = options.limit || 10;
 
     // Strip methods that we don't need
     delete this.scroll;
@@ -80,10 +79,10 @@ export class PartitionClient extends RegistryClient {
     } = options;
 
     let misses = 0;
-    const entries = await pMap(partitions, async (partition) => {
+    const entries = await pMap(partitions, async partition => {
       const entry = await this.request(partition, options);
       if (!entry.hit && !dryRun) {
-        misses = misses + 1;
+        misses += 1;
       }
 
       return entry;
@@ -93,15 +92,20 @@ export class PartitionClient extends RegistryClient {
   }
 
   async request({ startKey, endKey }, options = {}) {
-    const url = new URL(`_all_docs`, this.origin);
-    if (startKey) url.searchParams.set('startkey', `"${startKey}"`);
-    if (endKey)   url.searchParams.set('endkey', `"${endKey}"`);
+    const url = new URL('_all_docs', this.origin);
+    if (startKey) {
+      url.searchParams.set('startkey', `"${startKey}"`);
+    }
+
+    if (endKey) {
+      url.searchParams.set('endkey', `"${endKey}"`);
+    }
 
     // Always get as much as we can for each partition
     // TODO (0): when we receive 10000 rows, we should
     // surface a warning because the partition is too
     // large to be served
-    url.searchParams.set('limit', 10000);
+    url.searchParams.set('limit', 10_000);
 
     options.headers = {
       ...options.headers,
@@ -117,7 +121,7 @@ export class PartitionClient extends RegistryClient {
     const { cache = true } = options;
     signal?.throwIfAborted();
 
-    // first, try to get from the cache before making any request.
+    // First, try to get from the cache before making any request.
     const key = Partition.cacheKey(startKey, endKey, this.origin);
     const buffer = cache
       ? await this.cache.fetch(key, { context: { integrity } })
@@ -130,16 +134,16 @@ export class PartitionClient extends RegistryClient {
     }
 
     if (staleWhileRevalidate && entry?.staleWhileRevalidate) {
-      // revalidate while returning the stale entry
+      // Revalidate while returning the stale entry
       register(this.cache.path(), true, url);
       return entry;
     }
 
-    // either no cache entry, or need to revalidate before use.
+    // Either no cache entry, or need to revalidate before use.
     setCacheHeaders(options, entry);
     Object.assign(options, {
-        path: url.pathname.replace(/\/+$/, '') + url.search,
-        ...agentOptions,
+      path: url.pathname.replace(/\/+$/, '') + url.search,
+      ...agentOptions
     });
 
     options.origin = url.origin;
@@ -164,11 +168,11 @@ export class PartitionClient extends RegistryClient {
       if (Array.isArray(value)) {
         h.push(Buffer.from(key), Buffer.from(value.join(', ')));
         /* c8 ignore stop */
-      }
-      else if (typeof value === 'string') {
+      } else if (typeof value === 'string') {
         h.push(Buffer.from(key), Buffer.from(value));
       }
     }
+
     const { integrity, trustIntegrity } = options;
 
     console.log(`${this.origin}/_all_docs${url.search} ${response.statusCode}`);
@@ -179,11 +183,11 @@ export class PartitionClient extends RegistryClient {
       {
         integrity,
         trustIntegrity,
-        'stale-while-revalidate-factor': this.staleWhileRevalidateFactor,
+        'stale-while-revalidate-factor': this.staleWhileRevalidateFactor
       }
     );
 
-    response.body.on('data', (chunk) => result.addBody(chunk));
+    response.body.on('data', chunk => result.addBody(chunk));
     return await new Promise((res, rej) => {
       response.body.on('error', rej);
       response.body.on('end', () => res(result));

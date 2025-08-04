@@ -44,4 +44,4 @@ export const command = async cli => {
     //   });
     // }
   }
-}
+};

@@ -15,4 +15,4 @@ export const command = async cli => {
   });
 
   console.log(res);
-}
+};

@@ -9,12 +9,11 @@
  */
 
 import { jack } from 'jackspeak';
-
 import { aliases } from './jack.js';
 
-const toArr = (v) => (Array.isArray(v) ? v : [v]);
+const toArr = v => (Array.isArray(v) ? v : [v]);
 
-const code = (v) => [v, { pre: true }];
+const code = v => [v, { pre: true }];
 
 const join = (args, joiner = ' ') =>
   args.filter(Boolean).join(joiner);
@@ -25,20 +24,20 @@ export const commandUsage = ({
   description,
   subcommands,
   examples,
-  options,
+  options
 }) => {
-  const _all_docs = (s) => join([`_all_docs`, command, s])
+  const _all_docs = s => join(['_all_docs', command, s]);
 
-  const joinUsage = (usages) =>
+  const joinUsage = usages =>
     toArr(usages).map(_all_docs).filter(Boolean).join('\n');
 
-  const j = jack({ usage: joinUsage(usage) }).description(description)
+  const j = jack({ usage: joinUsage(usage) }).description(description);
 
   const knownAliases = aliases[command];
   if (knownAliases) {
     j.heading('Aliases', 2).description(knownAliases.join(', '), {
-      pre: true,
-    })
+      pre: true
+    });
   }
 
   if (subcommands) {
@@ -47,15 +46,15 @@ export const commandUsage = ({
       j.heading(k, 3)
         .description(v.description)
         .description(
-          ...code(joinUsage(toArr(v.usage).map(u => join([k, u])))),
+          ...code(joinUsage(toArr(v.usage).map(u => join([k, u]))))
         );
     }
   }
 
   if (examples) {
-    j.heading('Examples', 2)
+    j.heading('Examples', 2);
     for (const [k, v] of Object.entries(examples)) {
-      j.description(v.description).description(...code(_all_docs(k)))
+      j.description(v.description).description(...code(_all_docs(k)));
     }
   }
 
@@ -66,11 +65,11 @@ export const commandUsage = ({
         .description(v.description)
         .description(
           ...code(
-            join(['--', k, v.value ? '=' : undefined, v.value], ''),
-          ),
+            join(['--', k, v.value ? '=' : undefined, v.value], '')
+          )
         );
     }
   }
 
   return j;
-}
+};

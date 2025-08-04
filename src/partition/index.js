@@ -1,10 +1,7 @@
+import { start } from 'node:repl';
 import { CacheEntry } from '@vltpkg/registry-client';
 
-import { PartitionClient } from './client.js';
-import { PartitionSet } from './set.js';
-import { start } from 'node:repl';
-
-const kCustomInspect = Symbol.for('nodejs.util.inspect.custom')
+const kCustomInspect = Symbol.for('nodejs.util.inspect.custom');
 
 class Partition {
   #rows = [];
@@ -32,7 +29,7 @@ class Partition {
   }
 
   get [Symbol.toStringTag]() {
-    return '@_all_docs/Partition'
+    return '@_all_docs/Partition';
   }
 
   [kCustomInspect]() {
@@ -48,8 +45,13 @@ class Partition {
   static cacheKey(startKey, endKey, origin = 'https://replicate.npmjs.com') {
     const url = new URL('_all_docs', origin);
 
-    if (startKey) url.searchParams.set('startkey', `"${startKey}"`);
-    if (endKey)   url.searchParams.set('endkey', `"${endKey}"`);
+    if (startKey) {
+      url.searchParams.set('startkey', `"${startKey}"`);
+    }
+
+    if (endKey) {
+      url.searchParams.set('endkey', `"${endKey}"`);
+    }
 
     return JSON.stringify([
       `${url}`,
@@ -64,7 +66,7 @@ class Partition {
 
     const startKey = searchParams.get('startkey');
     const endKey = searchParams.get('endkey');
-    const origin = url.origin;
+    const {origin} = url;
 
     return new Partition({ startKey, endKey, origin });
   }
@@ -89,7 +91,9 @@ class Partition {
 }
 
 export {
-  PartitionClient,
-  Partition,
-  PartitionSet
-}
+
+  Partition
+
+};
+export {PartitionSet} from './set.js';
+export {PartitionClient} from './client.js';

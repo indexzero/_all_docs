@@ -21,7 +21,9 @@
     "p-map-series": "catalog:"
   },
   "scripts": {
-    "test": "node --test test/index.test.js"
+    "test": "node --test test/index.test.js",
+    "lint": "xo",
+    "lint:fix": "xo --fix"
   },
   "bugs": {
     "url": "https://github.com/indexzero/_all_docs/issues"

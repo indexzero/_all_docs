@@ -1,7 +1,7 @@
-import { Cache } from '@_all_docs/cache';
-import { Packument } from '@_all_docs/packument';
 import { join, resolve } from 'node:path';
 import { writeFileSync } from 'node:fs';
+import { Cache } from '@_all_docs/cache';
+import { Packument } from '@_all_docs/packument';
 
 export const command = async cli => {
   const cache = new Cache({ path: cli.dir('packuments') });
@@ -20,7 +20,7 @@ export const command = async cli => {
   const namesFile = resolve(process.cwd(), namesPath);
   const outDir = resolve(process.cwd(), outPath);
 
-  const { default:names } = await import(namesFile, { with: { type: 'json' } });
+  const { default: names } = await import(namesFile, { with: { type: 'json' } });
   if (!Array.isArray(names)) {
     console.error('File with packument names must be an array');
     return;
@@ -33,11 +33,12 @@ export const command = async cli => {
       console.error(`Packument ${name} not found in cache`);
       return null;
     }
+
     const pku = Packument.fromCacheEntry([key, val]);
     const filename = `${encodeURIComponent(pku.name)}.json`;
     const fullpath = join(outDir, filename);
     writeFileSync(fullpath, JSON.stringify(pku.contents, null, 2));
     console.log(`Wrote ${filename} to ${outDir}`);
   });
-}
+};
 

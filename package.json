@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "test": "pnpm -r test",
+    "lint": "xo",
+    "lint:fix": "xo --fix",
     "changeset": "changeset",
     "version": "changeset version && pnpm install --no-frozen-lockfile",
     "release": "changeset publish"
@@ -27,7 +29,8 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.1",
-    "npm-high-impact": "^1.10.0"
+    "npm-high-impact": "^1.10.0",
+    "xo": "^1.2.1"
   },
   "keywords": [
     "relax",

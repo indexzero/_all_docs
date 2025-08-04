@@ -18,7 +18,7 @@ const defaults = {
   dryRun: false,
   origins: {
     packument: 'https://registry.npmjs.com',
-    partition: 'https://replicate.npmjs.com',
+    partition: 'https://replicate.npmjs.com'
   }
 };
 

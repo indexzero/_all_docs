@@ -1,10 +1,9 @@
 
-import { writeFileSync } from 'fs';
+import { writeFileSync } from 'node:fs';
+import { join, basename } from 'node:path';
+import { type } from 'node:os';
 import { jack } from 'jackspeak';
-import { join, basename } from 'path';
-
 import pkg from '../package.json' with { type: 'json' };
-import { type } from 'os';
 
 const required = ['description'];
 const defaults = {
@@ -15,7 +14,7 @@ const defaults = {
   author: pkg.author,
   license: pkg.license,
   scripts: {
-    test: "node --test test/index.test.js"
+    test: 'node --test test/index.test.js'
   },
   bugs: pkg.bugs,
   homepage: pkg.homepage
@@ -25,14 +24,12 @@ const rootDir = join(import.meta.dirname, '..');
 
 function mkpkg({ target, values }) {
   const contents = {
-    ...{
-      name: `@_all_docs/${basename(target)}`,
-      description: values.description,
-      // TODO (cjr) what other values get plumbed in here?
-    },
-    ...defaults,
-  };
 
+    name: `@_all_docs/${basename(target)}`,
+    description: values.description, // TODO (cjr) what other values get plumbed in here?
+
+    ...defaults
+  };
 
   // We assume a monorepo so the target is relative to the root directory
   contents.repository.directory = target;
@@ -43,7 +40,7 @@ function mkpkg({ target, values }) {
     }
   }
 
-  const text = JSON.stringify(contents, null, 2)
+  const text = JSON.stringify(contents, null, 2);
   if (target) {
     writeFileSync(join(rootDir, target, 'package.json'), text);
     console.log(`Created package.json file at ${target}`);
@@ -58,7 +55,7 @@ function main() {
   const ack = jack({
     envPrefix: 'all_docs',
     allowPositional: true,
-    usage: 'mkpkg [options] <path>',
+    usage: 'mkpkg [options] <path>'
   })
     .heading('mkpkg - Create a package.json file')
     .opt({
@@ -72,15 +69,15 @@ function main() {
     .flag({
       version: {
         short: 'v',
-        description: 'Display current mkpkg version',
-      },
+        description: 'Display current mkpkg version'
+      }
     })
     .flag({
       help: {
         short: 'h',
-        description: 'Display helpful information about mkpkg',
-      },
-    })
+        description: 'Display helpful information about mkpkg'
+      }
+    });
 
   const { positionals, values } = ack.parse(process.argv);
   const [target] = positionals;
@@ -88,7 +85,9 @@ function main() {
   if (ack.version) {
     console.log(pkg.version);
     return process.exit(0);
-  } else if (ack.help) {
+  }
+
+  if (ack.help) {
     console.log(ack.usage());
     return process.exit(0);
   }

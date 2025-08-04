@@ -1,6 +1,5 @@
 import { resolve } from 'node:path';
 import { PartitionSet } from '@_all_docs/partition';
-
 import pMap from 'p-map';
 import { Cache } from '@_all_docs/cache';
 
@@ -11,11 +10,11 @@ export const command = async cli => {
 
   const cache = new Cache({ path: cli.dir('partitions') });
 
-  const result = await pMap(partitions, async (partition) => {
+  const result = await pMap(partitions, async partition => {
     const entry = await cache.fetch(partition.key);
-    return !entry
-      ? partition.key
-      : undefined;
+    return entry
+      ? undefined
+      : partition.key;
   }, { concurrency: 10 });
 
   const missing = result.filter(Boolean);
@@ -24,8 +23,8 @@ export const command = async cli => {
   return {
     action: 'inspect',
     inspect: missing
-  }
-}
+  };
+};
 
 // Remark (0): how do we make this as fast as the pMap version above?
 //

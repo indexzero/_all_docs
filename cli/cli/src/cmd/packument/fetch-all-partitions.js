@@ -1,7 +1,6 @@
 import { resolve } from 'node:path';
 import { Partition, PartitionSet } from '@_all_docs/partition';
 import { PackumentClient } from '@_all_docs/packument';
-
 import pMap from 'p-map';
 import { Cache } from '@_all_docs/cache';
 
@@ -14,15 +13,13 @@ export const command = async cli => {
   // Remark (0): there is no way to pMap read the cache itself so (for now)
   // we use pivots. This reinforces that our own custom `lru-cache` is probably
   // the right call here overall.
-  const entries = await pMap(partitions, async (partition) => {
-    return [partition.key, await cache.fetch(partition.key)];
-  }, { concurrency: 50 });
+  const entries = await pMap(partitions, async partition => [partition.key, await cache.fetch(partition.key)], { concurrency: 50 });
 
   const packageNamesByPartition = await pMap(entries, async ([key, val]) => {
     const partition = Partition.fromCacheEntry([key, val]);
 
     const packageNames = partition.rows.map(({ id }) => id);
-    if (!packageNames.length) {
+    if (packageNames.length === 0) {
       console.log(`No packument names in ${partition.key}`);
       return;
     }
@@ -31,7 +28,9 @@ export const command = async cli => {
   }, { concurrency: 10 });
 
   const totalPackages = packageNamesByPartition.reduce((acc, res) => {
-    if (!res) return acc;
+    if (!res) {
+      return acc;
+    }
 
     const [, packages] = res;
     return acc + packages.length;
@@ -46,14 +45,16 @@ export const command = async cli => {
   });
 
   let fetched = 0;
-  await pMap(packageNamesByPartition, async (res) => {
-    if (!res) return;
+  await pMap(packageNamesByPartition, async res => {
+    if (!res) {
+      return;
+    }
 
     const [key, packageNames] = res;
 
     console.log(`Fetch ${packageNames.length} packuments from ${key}`);
     await client.requestAll(packageNames);
-    fetched = fetched + packageNames.length;
+    fetched += packageNames.length;
     console.log(`Fetched ${fetched} packuments from ${totalPackages}`);
   }, { concurrency: 10 });
-}
+};

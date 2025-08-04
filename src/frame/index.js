@@ -1,20 +1,20 @@
 import { pMapIterable } from 'p-map';
-
 import { Cache } from '@_all_docs/cache';
 import { Partition } from '@_all_docs/partition';
 import { Packument } from '@_all_docs/packument';
 
 class Frame {
-  #options = {}
+  #options = {};
 
   constructor(iterable, options = {}) {
     if (
-      !iterable ||
-      (typeof iterable[Symbol.iterator] !== 'function' &&
-        typeof iterable[Symbol.asyncIterator] !== 'function')
+      !iterable
+      || (typeof iterable[Symbol.iterator] !== 'function'
+      	&& typeof iterable[Symbol.asyncIterator] !== 'function')
     ) {
       throw new TypeError('Provided value is not iterable');
     }
+
     this.iterable = iterable;
     this.configure(options);
   }
@@ -34,6 +34,7 @@ class Frame {
     if (typeof this.iterable[Symbol.asyncIterator] === 'function') {
       return this.iterable[Symbol.asyncIterator]();
     }
+
     const iterator = this.iterable[Symbol.iterator]();
     return {
       next() {
@@ -42,36 +43,36 @@ class Frame {
       [Symbol.asyncIterator]() {
         return this;
       }
-    }
+    };
   }
 
   // This may need to be in its own module for mixins
   map(fn, options) {
     const frame = this;
     return {
-      *[Symbol.iterator]() {
+      * [Symbol.iterator]() {
         for (const entry of frame) {
-          yield fn(entry)
+          yield fn(entry);
         }
       },
 
       ...pMapIterable(frame, fn, options)
-    }
+    };
   }
-
 
   reduce(fn, initialValue) {
     let accumulator = initialValue;
     for (const entry of this) {
       accumulator = fn(accumulator, entry);
     }
+
     return accumulator;
   }
 
   filter(fn) {
     const frame = this;
     return {
-      *[Symbol.iterator]() {
+      * [Symbol.iterator]() {
         for (const entry of frame) {
           if (fn(entry)) {
             yield entry;
@@ -79,14 +80,14 @@ class Frame {
         }
       },
 
-      async *[Symbol.asyncIterator]() {
+      async * [Symbol.asyncIterator]() {
         for await (const entry of frame) {
           if (fn(entry)) {
             yield entry;
           }
         }
       }
-    }
+    };
   }
 }
 
@@ -116,10 +117,8 @@ class PartitionFrame extends Frame {
   }
 }
 
-
-
 export {
   PackumentFrame,
   PartitionFrame
-}
+};
 

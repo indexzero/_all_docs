@@ -8,10 +8,8 @@
  * @url https://github.com/vltpkg/vltpkg/blob/c2e235f/LICENSE
  * @url https://github.com/vltpkg/vltpkg/blob/c2e235f/src/cli-sdk/src/cli-sdk/src/config/index.ts#L305-L338
  */
-import { error } from '@vltpkg/error-cause'
-
+import { error } from '@vltpkg/error-cause';
 import Config from '@_all_docs/config';
-
 import { getCommand, cli } from './jack.js';
 import { outputCommand } from './output.js';
 
@@ -19,14 +17,14 @@ import { outputCommand } from './output.js';
  * Parse the arguments and set configuration and positionals accordingly.
  */
 function parse(argh) {
-  cli.loadEnvDefaults()
-  const raw = cli.parseRaw(argh)
+  cli.loadEnvDefaults();
+  const raw = cli.parseRaw(argh);
 
   const fallback = getCommand(raw.values['fallback-command']);
-  let isCommand = getCommand(raw.positionals[0])
+  const isCommand = getCommand(raw.positionals[0]);
 
-  cli.applyDefaults(raw)
-  cli.writeEnv(raw)
+  cli.applyDefaults(raw);
+  cli.writeEnv(raw);
 
   const command = isCommand
     ? getCommand(raw.positionals.shift())
@@ -41,9 +39,9 @@ function parse(argh) {
     cli: {
       usage: () => cli.usage(),
       values: raw.values,
-      _: raw.positionals,
+      _: raw.positionals
     }
-  }
+  };
 }
 
 async function importCommand(cmd, subcmd) {
@@ -56,15 +54,15 @@ async function importCommand(cmd, subcmd) {
   const cmdpath = `${cmd}/${subcmd}`;
   try {
     return await import(`./cmd/${cmdpath}.js`);
-  } catch (e) {
+  } catch (err) {
     throw error('Failed to load command', {
       found: cmdpath,
-      cause: e
-    })
+      cause: err
+    });
   }
 }
 
-const run = async (argh) => {
+const run = async argh => {
   const {
     command: cmd,
     subcommand: subcmd,
@@ -74,6 +72,6 @@ const run = async (argh) => {
   const conf = new Config(cli);
   const { command, usage } = await importCommand(cmd, subcmd);
   outputCommand({ command, usage, name: cmd }, conf);
-}
+};
 
 export default run;

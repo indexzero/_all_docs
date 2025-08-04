@@ -1,5 +1,4 @@
 import { resolve } from 'node:path';
-
 import { execId } from '@_all_docs/exec';
 import { PackumentFrame } from '@_all_docs/frame';
 
@@ -42,4 +41,4 @@ export const command = async cli => {
     debug('write group output |', eid);
     await writeFile(`groups-${eid}.json`, JSON.stringify(groups, null, 2), 'utf8');
   }
-}
+};

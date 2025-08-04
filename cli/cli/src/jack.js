@@ -8,7 +8,7 @@
  * @url https://github.com/vltpkg/vltpkg/blob/c2e235f/LICENSE
  * @url https://github.com/vltpkg/vltpkg/blob/c2e235f/src/cli-sdk/src/config/definition.ts#L101-L546
  */
-import { jack } from 'jackspeak'
+import { jack } from 'jackspeak';
 
 const fullCommands = {
   help: 'help',
@@ -42,16 +42,16 @@ function getCommand(name) {
 const ack = jack({
   envPrefix: '_all_docs',
   allowPositionals: true,
-  usage: `_all_docs [<options>] [<cmd> [<args> ...]]`
+  usage: '_all_docs [<options>] [<cmd> [<args> ...]]'
 })
   .heading('_all_docs – Fetch & cache :origin/_all_docs using a set of lexographically sorted keys')
-  .heading('Subcommands')
+  .heading('Subcommands');
 
 ack.description(Object.keys(commands).join(', '), {
-  pre: true,
+  pre: true
 }).description(
-  'Run `_all_docs <cmd> --help` for command-specific details',
-)
+  'Run `_all_docs <cmd> --help` for command-specific details'
+);
 
 const cli = ack
   .opt({
@@ -62,7 +62,7 @@ const cli = ack
 
                     For example, \`GET /_all_docs\`
                     will be requested from this registry origin.
-      `,
+      `
     },
     registry: {
       hint: 'url',
@@ -71,7 +71,7 @@ const cli = ack
 
                     For example, \`GET /winston\`
                     will be requested from this registry origin.
-      `,
+      `
     }
   })
 
@@ -82,7 +82,7 @@ const cli = ack
 
                     For example, \`GET /_all_docs?startkey=foo\`
                     will be requested from this registry origin.
-      `,
+      `
     },
     end: {
       hint: 'string',
@@ -90,28 +90,28 @@ const cli = ack
 
                     For example, \`GET /_all_docs?endkey=foo\`
                     will be requested from this registry origin.
-      `,
-    },
+      `
+    }
   })
 
   .flag({
     refresh: {
       short: 'r',
       default: false,
-      description: `Refresh the local disk cache for this request.`,
+      description: 'Refresh the local disk cache for this request.'
     },
     'no-refresh': {
       short: 'R',
-      description: 'Do not refresh the local disk cache for this request.',
+      description: 'Do not refresh the local disk cache for this request.'
     },
     cache: {
       short: 'd',
       default: true,
-      description: `Read from the local disk cache (if available).`,
+      description: 'Read from the local disk cache (if available).'
     },
     'no-cache': {
       short: 'D',
-      description: 'Do not read from the local disk cache.',
+      description: 'Do not read from the local disk cache.'
     }
   })
 
@@ -120,8 +120,8 @@ const cli = ack
       hint: 'path',
       description: `Path to JavaScript file from which pivots
                     are exported from
-      `,
-    },
+      `
+    }
   })
 
   .opt({
@@ -130,35 +130,34 @@ const cli = ack
       description: `Path to JavaScript design document on which
                     the [exec].{view, map, reduce} functions are
                     defined.
-      `,
+      `
     },
     exec: {
       hint: 'string',
       description: `Named design document property on which
                     the { view, map, reduce } functions to be
                     executed are defined.
-      `,
+      `
     }
   })
-
 
   .flag({
     version: {
       short: 'v',
-      description: 'Display current _all_docs version',
-    },
+      description: 'Display current _all_docs version'
+    }
   })
 
   .flag({
     help: {
       short: 'h',
-      description: 'Display helpful information about _all_docs & related commands',
-    },
-  })
+      description: 'Display helpful information about _all_docs & related commands'
+    }
+  });
 
 export {
   commands,
   aliases,
   getCommand,
   cli
-}
+};

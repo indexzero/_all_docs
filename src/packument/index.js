@@ -1,7 +1,5 @@
 import { CacheEntry } from '@vltpkg/registry-client';
 
-import { PackumentClient } from "./client.js";
-
 class Packument {
   constructor({ name, contents, origin }) {
     this.name = name;
@@ -25,10 +23,10 @@ class Packument {
       origin: where.origin
     });
   }
-
 }
 
 export {
-  Packument,
-  PackumentClient
-}
+  Packument
+
+};
+export {PackumentClient} from './client.js';

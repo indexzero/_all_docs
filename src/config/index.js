@@ -1,16 +1,16 @@
-import { XDG } from '@vltpkg/xdg'
+import { XDG } from '@vltpkg/xdg';
 
 export default class Config {
   constructor(cli) {
     this.cli = cli;
-    this.xdg = new XDG('_all_docs')
+    this.xdg = new XDG('_all_docs');
 
     this.dirs = {
       partitions: this.xdg.cache('partitions'),
       packuments: this.xdg.cache('packuments'),
       logs: this.xdg.data('logs'),
       sessions: this.xdg.data('sessions')
-    }
+    };
   }
 
   get(key) {

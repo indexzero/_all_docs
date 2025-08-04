@@ -1,12 +1,10 @@
 import { describe, it } from 'node:test';
-import { rimraf } from 'rimraf';
 import { join } from 'node:path';
 import { ok } from 'node:assert/strict';
-
+import { rimraf } from 'rimraf';
 import { PartitionClient } from '../client.js';
 
 const fixtures = join(import.meta.dirname, 'fixtures');
-
 
 describe('_all_docs/client', () => {
   it('.request({ 8, 9 }) returns a valid cache entry', async () => {

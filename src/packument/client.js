@@ -10,12 +10,10 @@
  */
 
 import { resolve } from 'node:path';
-
 import pMap from 'p-map';
 import { RegistryClient, CacheEntry } from '@vltpkg/registry-client';
 import { XDG } from '@vltpkg/xdg';
-import { Cache } from '@vltpkg/cache'
-
+import { Cache } from '@vltpkg/cache';
 
 const xdg = new XDG('_all_docs');
 
@@ -29,9 +27,9 @@ export class PackumentClient extends RegistryClient {
       path,
       onDiskWrite(_path, key, data) {
         if (CacheEntry.isGzipEntry(data)) {
-          cacheUnzipRegister(path, key)
+          cacheUnzipRegister(path, key);
         }
-      },
+      }
     });
 
     // Grab our own options out of it
@@ -54,11 +52,11 @@ export class PackumentClient extends RegistryClient {
     } = options;
 
     let misses = 0;
-    const entries = await pMap(packages, async (name) => {
+    const entries = await pMap(packages, async name => {
       const url = this.#url(name);
       const entry = await this.request(url, options);
       if (!entry.hit && !dryRun) {
-        misses = misses + 1;
+        misses += 1;
       }
 
       return entry;

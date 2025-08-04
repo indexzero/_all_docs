@@ -14,7 +14,7 @@ export const command = async cli => {
   console.log(`${where}`, {
     cache: cli.values.cache,
     refresh: cli.values.refresh
-  })
+  });
 
   const res = await client.request(where, {
     cache: cli.values.cache,
@@ -22,4 +22,4 @@ export const command = async cli => {
   });
 
   console.log(res);
-}
+};

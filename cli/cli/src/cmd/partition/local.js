@@ -1,6 +1,5 @@
 import { PartitionFrame } from '@_all_docs/frame';
 
-
 export const command = async cli => {
   const source = cli.dir('partitions');
 
@@ -12,4 +11,4 @@ export const command = async cli => {
     // Likely culprit is the hashing algorithm used by `@vltpkg/cache`
     console.log(`${startKey} -> ${endKey} | ${rows.length} rows`);
   }
-}
+};

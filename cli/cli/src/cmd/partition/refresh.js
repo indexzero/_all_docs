@@ -1,5 +1,4 @@
-import { resolve } from 'path';
-
+import { resolve } from 'node:path';
 import { PartitionClient, PartitionSet } from '@_all_docs/partition';
 
 export const command = async cli => {
@@ -18,8 +17,7 @@ export const command = async cli => {
     cache: cli.values.cache,
     refresh: cli.values.refresh
   });
-}
-
+};
 
 async function requestAll(partitions, options) {
   const {
@@ -45,7 +43,7 @@ async function requestAll(partitions, options) {
 
   for await (const range of ranges) {
     const first = range[0];
-    const last = range[range.length - 1];
+    const last = range.at(-1);
     console.dir({ size: range.length, first: first.key, last: last.key });
     await client.requestAll(range, { limit, cache, refresh });
   }

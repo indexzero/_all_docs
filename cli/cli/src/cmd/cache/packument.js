@@ -23,4 +23,4 @@ export const command = async cli => {
   const pku = Packument.fromCacheEntry([key, val]);
 
   console.dir(pku.contents);
-}
+};

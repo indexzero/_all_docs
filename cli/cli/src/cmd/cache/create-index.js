@@ -1,5 +1,4 @@
 import { join, format } from 'node:path';
-
 import { PartitionFrame } from '@_all_docs/frame';
 
 /**
@@ -56,4 +55,4 @@ export const command = async cli => {
   //   fullpath,
   //   utf8: index
   // };
-}
+};

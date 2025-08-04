@@ -1,4 +1,4 @@
-import { createRequire } from 'module';
+import { createRequire } from 'node:module';
 
 async function unstable(subpath, mod = '@vltpkg/registry-client') {
   const require = createRequire(import.meta.url);

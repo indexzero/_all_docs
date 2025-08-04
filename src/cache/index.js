@@ -10,21 +10,21 @@ class Cache extends HttpBufferCache {
   map(fn) {
     const frame = this;
     return {
-      *[Symbol.iterator]() {
+      * [Symbol.iterator]() {
         for (const entry of frame) {
-          yield fn(entry)
+          yield fn(entry);
         }
       },
 
-      async *[Symbol.asyncIterator]() {
+      async * [Symbol.asyncIterator]() {
         for await (const entry of frame) {
-          yield fn(entry)
+          yield fn(entry);
         }
       }
-    }
+    };
   }
 }
 
 export {
   Cache
-}
+};
