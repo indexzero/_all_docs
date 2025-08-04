@@ -1,6 +1,11 @@
 import { resolve } from 'node:path';
+import { writeFile } from 'node:fs/promises';
+import process from 'node:process';
+import debuglog from 'debug';
 import { execId } from '@_all_docs/exec';
 import { PackumentFrame } from '@_all_docs/frame';
+
+const debug = debuglog('_all_docs:cmd:exec:map-reduce'); // eslint-disable-line new-cap
 
 export const command = async cli => {
   const { design, exec } = cli.values;

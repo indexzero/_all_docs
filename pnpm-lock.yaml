@@ -93,6 +93,12 @@ importers:
       '@vltpkg/error-cause':
         specifier: 0.0.0-9
         version: 0.0.0-9
+      debug:
+        specifier: ^4.4.0
+        version: 4.4.1
+      jackspeak:
+        specifier: ^4.1.0
+        version: 4.1.1
       p-map:
         specifier: 'catalog:'
         version: 7.0.3
@@ -127,6 +133,9 @@ importers:
       '@_all_docs/partition':
         specifier: workspace:*
         version: link:../partition
+      p-map:
+        specifier: 'catalog:'
+        version: 7.0.3
 
   src/packument:
     dependencies:
@@ -142,6 +151,9 @@ importers:
       '@vltpkg/xdg':
         specifier: 'catalog:'
         version: 0.0.0-9
+      p-map:
+        specifier: 'catalog:'
+        version: 7.0.3
 
   src/partition:
     dependencies:

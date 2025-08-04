@@ -19,6 +19,8 @@
     "@_all_docs/packument": "workspace:*",
     "@_all_docs/partition": "workspace:*",
     "@vltpkg/error-cause": "0.0.0-9",
+    "debug": "^4.4.0",
+    "jackspeak": "^4.1.0",
     "p-map": "catalog:"
   },
   "bin": {

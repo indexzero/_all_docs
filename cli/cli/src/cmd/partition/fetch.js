@@ -1,5 +1,4 @@
-import { Cache } from '@_all_docs/cache';
-import { Partition, PartitionClient } from '@_all_docs/partition';
+import { PartitionClient } from '@_all_docs/partition';
 
 export const command = async cli => {
   const client = new PartitionClient({

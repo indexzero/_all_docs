@@ -1,7 +1,7 @@
 
 import { writeFileSync } from 'node:fs';
 import { join, basename } from 'node:path';
-import { type } from 'node:os';
+import process from 'node:process';
 import { jack } from 'jackspeak';
 import pkg from '../package.json' with { type: 'json' };
 

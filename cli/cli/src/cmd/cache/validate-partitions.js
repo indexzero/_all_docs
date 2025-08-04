@@ -1,4 +1,5 @@
 import { resolve } from 'node:path';
+import process from 'node:process';
 import { PartitionSet } from '@_all_docs/partition';
 import pMap from 'p-map';
 import { Cache } from '@_all_docs/cache';

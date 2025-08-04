@@ -92,10 +92,6 @@ class Frame {
 }
 
 class PackumentFrame extends Frame {
-  constructor(iter, options) {
-    super(iter, options);
-  }
-
   static fromCache(path) {
     return new PartitionFrame(
       new Cache({ path })
@@ -105,10 +101,6 @@ class PackumentFrame extends Frame {
 }
 
 class PartitionFrame extends Frame {
-  constructor(iter, options) {
-    super(iter, options);
-  }
-
   static fromCache(path) {
     return new PartitionFrame(
       new Cache({ path })

@@ -9,6 +9,7 @@
  * @url https://github.com/vltpkg/vltpkg/blob/63f8a60/src/registry-client/src/index.ts#L395-L548
  */
 
+import { Buffer } from 'node:buffer';
 import { resolve } from 'node:path';
 import pMap from 'p-map';
 import { RegistryClient, CacheEntry } from '@vltpkg/registry-client';
@@ -188,9 +189,9 @@ export class PartitionClient extends RegistryClient {
     );
 
     response.body.on('data', chunk => result.addBody(chunk));
-    return await new Promise((res, rej) => {
-      response.body.on('error', rej);
-      response.body.on('end', () => res(result));
+    return await new Promise((resolve, reject) => {
+      response.body.on('error', reject);
+      response.body.on('end', () => resolve(result));
     });
   }
 }

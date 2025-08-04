@@ -1,5 +1,6 @@
-const { writeFileSync } = require('node:fs');
-const { npmHighImpact } = require('npm-high-impact');
+import { writeFileSync } from 'node:fs';
+import process from 'node:process';
+import { npmHighImpact } from 'npm-high-impact';
 
 const filename = process.argv[2] || 'npm-high-impact.json';
 

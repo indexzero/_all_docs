@@ -4,6 +4,7 @@ class Packument {
   constructor({ name, contents, origin }) {
     this.name = name;
     this.contents = contents;
+    this.origin = origin;
   }
 
   static cacheKey(name, origin = 'https://registry.npmjs.com') {
@@ -25,8 +26,5 @@ class Packument {
   }
 }
 
-export {
-  Packument
-
-};
-export {PackumentClient} from './client.js';
+export { Packument };
+export { PackumentClient } from './client.js';

@@ -26,10 +26,10 @@ export const commandUsage = ({
   examples,
   options
 }) => {
-  const _all_docs = s => join(['_all_docs', command, s]);
+  const allDocs = s => join(['_all_docs', command, s]);
 
   const joinUsage = usages =>
-    toArr(usages).map(_all_docs).filter(Boolean).join('\n');
+    toArr(usages).map(u => allDocs(u)).filter(Boolean).join('\n');
 
   const j = jack({ usage: joinUsage(usage) }).description(description);
 
@@ -54,7 +54,7 @@ export const commandUsage = ({
   if (examples) {
     j.heading('Examples', 2);
     for (const [k, v] of Object.entries(examples)) {
-      j.description(v.description).description(...code(_all_docs(k)));
+      j.description(v.description).description(...code(allDocs(k)));
     }
   }
 

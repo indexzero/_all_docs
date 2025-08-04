@@ -1,4 +1,5 @@
 import { resolve } from 'node:path';
+import process from 'node:process';
 import { PartitionClient, PartitionSet } from '@_all_docs/partition';
 
 export const command = async cli => {

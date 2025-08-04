@@ -12,7 +12,8 @@
   "dependencies": {
     "@_all_docs/cache": "workspace:*",
     "@_all_docs/packument": "workspace:*",
-    "@_all_docs/partition": "workspace:*"
+    "@_all_docs/partition": "workspace:*",
+    "p-map": "catalog:"
   },
   "author": "Charlie Robbins <npm@charlie.dev>",
   "license": "Apache-2.0",

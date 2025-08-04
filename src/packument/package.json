@@ -13,7 +13,8 @@
     "@vltpkg/cache": "catalog:",
     "@vltpkg/cache-unzip": "catalog:",
     "@vltpkg/registry-client": "catalog:",
-    "@vltpkg/xdg": "catalog:"
+    "@vltpkg/xdg": "catalog:",
+    "p-map": "catalog:"
   },
   "author": "Charlie Robbins <npm@charlie.dev>",
   "license": "Apache-2.0",

@@ -8,6 +8,7 @@
  * @url https://github.com/vltpkg/vltpkg/blob/c2e235f/LICENSE
  * @url https://github.com/vltpkg/vltpkg/blob/c2e235f/src/cli-sdk/src/cli-sdk/src/config/index.ts#L305-L338
  */
+import process from 'node:process';
 import { error } from '@vltpkg/error-cause';
 import Config from '@_all_docs/config';
 import { getCommand, cli } from './jack.js';

@@ -1,4 +1,5 @@
 import { basename, resolve } from 'node:path';
+import process from 'node:process';
 import pMap from 'p-map';
 import { PackumentClient } from '@_all_docs/packument';
 

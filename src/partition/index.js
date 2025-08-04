@@ -1,4 +1,3 @@
-import { start } from 'node:repl';
 import { CacheEntry } from '@vltpkg/registry-client';
 
 const kCustomInspect = Symbol.for('nodejs.util.inspect.custom');

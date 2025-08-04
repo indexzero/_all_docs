@@ -1,4 +1,5 @@
-import { join, format } from 'node:path';
+import { join } from 'node:path';
+import process from 'node:process';
 import { PartitionFrame } from '@_all_docs/frame';
 
 /**
@@ -45,7 +46,7 @@ export const command = async cli => {
     : '.rev.index';
 
   const index = await createRevIndex({ source, format });
-  const fullpath = join(source, filename);
+  const _fullpath = join(source, filename);
 
   process.stdout.write(index);
 

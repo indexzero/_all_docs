@@ -1,4 +1,3 @@
-import { Cache } from '@_all_docs/cache';
 import { PackumentClient } from '@_all_docs/packument';
 
 export const command = async cli => {
