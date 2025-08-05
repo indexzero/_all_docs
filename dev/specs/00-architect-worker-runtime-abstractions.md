@@ -153,6 +153,146 @@ Using your `edge-architect` agent:
 
 ## Plan
 
+### Phase 0: Package Structure
+
+Create a new `@_all_docs/worker` package in the monorepo to isolate worker functionality and minimize bundle sizes for edge deployments.
+
+**Benefits of separate package:**
+- Reduced bundle sizes for edge deployments (only worker code is bundled)
+- Independent versioning and deployment
+- Clear separation of concerns
+- Easier to test worker functionality in isolation
+- Can be published to npm separately if needed
+
+#### 0.1 Monorepo Structure
+
+```
+_all_docs/
+├── src/
+│   ├── cache/         # @_all_docs/cache
+│   ├── config/        # @_all_docs/config
+│   ├── exec/          # @_all_docs/exec
+│   ├── frame/         # @_all_docs/frame
+│   ├── packument/     # @_all_docs/packument
+│   └── partition/     # @_all_docs/partition
+├── cli/
+│   └── cli/           # @_all_docs/cli
+├── workers/
+│   └── worker/        # @_all_docs/worker (NEW)
+│       ├── package.json
+│       ├── index.js
+│       ├── app.js
+│       ├── http/
+│       ├── storage/
+│       ├── queue/
+│       ├── clients/
+│       ├── processors/
+│       └── runtime/
+└── pnpm-workspace.yaml
+```
+
+#### 0.2 Worker Package Configuration
+
+```json
+// workers/worker/package.json
+{
+  "name": "@_all_docs/worker",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./app": "./app.js",
+    "./http": "./http/index.js",
+    "./storage": "./storage/index.js",
+    "./queue": "./queue/index.js",
+    "./processors": "./processors/index.js",
+    "./runtime": "./runtime/index.js"
+  },
+  "dependencies": {
+    "hono": "^4.0.0",
+    "p-queue": "catalog:",
+    "bullmq": "^5.0.0",
+    "p-retry": "^6.0.0"
+  },
+  "devDependencies": {
+    "unenv": "^1.9.0",
+    "unbuild": "^2.0.0",
+    "@hono/node-server": "^1.0.0"
+  },
+  "peerDependencies": {
+    "@_all_docs/partition": "workspace:*",
+    "@_all_docs/packument": "workspace:*"
+  },
+  "scripts": {
+    "build": "unbuild",
+    "build:cf": "unbuild --preset cloudflare",
+    "build:fastly": "unbuild --preset fastly"
+  }
+}
+```
+
+#### 0.3 Update pnpm Workspace Configuration
+
+```yaml
+# pnpm-workspace.yaml
+packages:
+  - 'src/*'
+  - 'cli/*'
+  - 'workers/*'  # Add this line
+```
+
+#### 0.4 Main Worker Package Export
+
+```javascript
+// workers/worker/index.js
+export { default as app } from './app.js';
+export * from './http/index.js';
+export * from './storage/index.js';
+export * from './queue/index.js';
+export * from './processors/index.js';
+export * from './runtime/index.js';
+
+// Re-export key types
+export * from './types.js';
+```
+
+```javascript
+// workers/worker/types.js
+/**
+ * @typedef {Object} WorkerEnv
+ * @property {KVNamespace} [CACHE_KV] - Cloudflare KV namespace
+ * @property {Dictionary} [CACHE_DICT] - Fastly edge dictionary
+ * @property {string} [CACHE_DIR] - Node.js cache directory
+ * @property {string} NPM_ORIGIN - npm registry origin
+ * @property {'node' | 'cloudflare' | 'fastly'} RUNTIME
+ */
+
+/**
+ * @typedef {Object} WorkItem
+ * @property {'partition-set' | 'partition' | 'packument'} type
+ * @property {string} id - Unique identifier for deduplication
+ * @property {Object} payload - Type-specific payload
+ * @property {number} priority - Higher priority items processed first
+ * @property {number} attempts - Number of previous attempts
+ */
+
+/**
+ * @typedef {Object} WorkResult
+ * @property {string} workItemId
+ * @property {boolean} success
+ * @property {Object} [data] - Result data if successful
+ * @property {Error} [error] - Error if failed
+ * @property {number} duration - Processing time in ms
+ * @property {Object} [metrics] - Optional performance metrics
+ */
+
+export const WorkItemTypes = {
+  PARTITION_SET: 'partition-set',
+  PARTITION: 'partition',
+  PACKUMENT: 'packument'
+};
+```
+
 ### Phase 1: Cross-Runtime HTTP Framework with Hono
 
 Use **Hono** as the unified framework for handling HTTP requests across all runtime environments. Hono provides built-in adapters for Node.js, Cloudflare Workers, and Fastly Compute@Edge.
@@ -160,7 +300,7 @@ Use **Hono** as the unified framework for handling HTTP requests across all runt
 #### 1.1 Core Worker Application
 
 ```javascript
-// src/worker/app.js
+// workers/worker/app.js
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
@@ -216,7 +356,7 @@ export default app;
 Create minimal entry points for each runtime that import the Hono app:
 
 ```javascript
-// src/worker/node.js
+// workers/worker/node.js
 import { serve } from '@hono/node-server';
 import app from './app.js';
 
@@ -225,11 +365,11 @@ serve({
   port: process.env.PORT || 3000,
 });
 
-// src/worker/cloudflare.js
+// workers/worker/cloudflare.js
 import app from './app.js';
 export default app;
 
-// src/worker/fastly.js
+// workers/worker/fastly.js
 import app from './app.js';
 app.fire(); // Fastly-specific initialization
 ```
@@ -243,7 +383,7 @@ Create abstractions that allow the existing codebase to work across different ru
 Replace direct `undici` usage with a fetch-based abstraction that maintains API compatibility:
 
 ```javascript
-// src/worker/http/client.js
+// workers/worker/http/client.js
 /**
  * HTTPClient abstraction that wraps native fetch API
  * Provides undici-compatible interface for existing code
@@ -313,7 +453,7 @@ export function createHTTPClient(origin, env) {
 Create a unified storage interface that works with filesystem (Node.js) and KV stores (edge):
 
 ```javascript
-// src/worker/storage/interface.js
+// workers/worker/storage/interface.js
 /**
  * @typedef {Object} StorageAdapter
  * @property {(key: string) => Promise<any>} get
@@ -323,7 +463,7 @@ Create a unified storage interface that works with filesystem (Node.js) and KV s
  * @property {(prefix: string) => AsyncIterator<string>} list
  */
 
-// src/worker/storage/node.js
+// workers/worker/storage/node.js
 import { readFile, writeFile, access, unlink, readdir } from 'fs/promises';
 import { join } from 'path';
 
@@ -368,7 +508,7 @@ export class NodeStorageAdapter {
   }
 }
 
-// src/worker/storage/cloudflare.js
+// workers/worker/storage/cloudflare.js
 export class CloudflareStorageAdapter {
   constructor(kvNamespace) {
     this.kv = kvNamespace;
@@ -405,7 +545,7 @@ export class CloudflareStorageAdapter {
   }
 }
 
-// src/worker/storage/factory.js
+// workers/worker/storage/factory.js
 export function createStorageAdapter(env) {
   switch (env.RUNTIME) {
     case 'node':
@@ -429,7 +569,7 @@ Use existing npm packages for work distribution instead of building from scratch
 For local development and single-region deployments, use `p-queue` for in-memory queue management:
 
 ```javascript
-// src/worker/queue/local.js
+// workers/worker/queue/local.js
 import PQueue from 'p-queue';
 import pRetry from 'p-retry';
 
@@ -482,7 +622,7 @@ export class LocalWorkQueue {
 For production deployments with Redis, use BullMQ for distributed work queues:
 
 ```javascript
-// src/worker/queue/distributed.js
+// workers/worker/queue/distributed.js
 import { Queue, Worker, QueueScheduler } from 'bullmq';
 
 export class DistributedWorkQueue {
@@ -553,7 +693,7 @@ export class DistributedWorkQueue {
 For edge deployments without Redis, use Cloudflare Durable Objects or Fastly's real-time messaging:
 
 ```javascript
-// src/worker/queue/edge.js
+// workers/worker/queue/edge.js
 export class EdgeWorkQueue {
   constructor(env) {
     this.env = env;
@@ -585,7 +725,7 @@ Modify the existing `PartitionClient` and registry clients to work with our abst
 Adapt the existing partition client to use our HTTP and storage abstractions:
 
 ```javascript
-// src/worker/clients/partition.js
+// workers/worker/clients/partition.js
 import { createHTTPClient } from '../http/client.js';
 import { createStorageAdapter } from '../storage/factory.js';
 
@@ -669,7 +809,7 @@ export class EdgePartitionClient {
 Create a minimal registry client that extends the abstracted base:
 
 ```javascript
-// src/worker/clients/registry.js
+// workers/worker/clients/registry.js
 import { createHTTPClient } from '../http/client.js';
 
 export class EdgeRegistryClient {
@@ -707,20 +847,20 @@ export class EdgeRegistryClient {
 
 ### Phase 5: Build Configuration with unenv
 
-Use `unenv` to provide Node.js API polyfills at build time for edge runtimes.
+Use `unenv` to provide Node.js API polyfills at build time for edge runtimes. This configuration is now part of the `@_all_docs/worker` package.
 
 #### 5.1 Build Configuration
 
 ```javascript
-// build.config.js
+// workers/worker/build.config.js
 import { defineBuildConfig } from 'unbuild';
 import { env } from 'unenv';
 
 export default defineBuildConfig({
   entries: [
-    { input: 'src/worker/app.js', name: 'worker' },
-    { input: 'src/worker/cloudflare.js', name: 'cloudflare', builder: 'rollup' },
-    { input: 'src/worker/fastly.js', name: 'fastly', builder: 'rollup' },
+    { input: './app.js', name: 'worker' },
+    { input: './cloudflare.js', name: 'cloudflare', builder: 'rollup' },
+    { input: './fastly.js', name: 'fastly', builder: 'rollup' },
   ],
   rollup: {
     emitCJS: false,
@@ -752,7 +892,7 @@ export default defineBuildConfig({
 #### 5.2 Runtime Detection and Polyfills
 
 ```javascript
-// src/worker/runtime.js
+// workers/worker/runtime.js
 /**
  * Runtime detection and environment setup
  */
@@ -806,7 +946,7 @@ Adapt the existing commands to use the worker infrastructure.
 #### 6.1 Worker Processing Functions
 
 ```javascript
-// src/worker/processors/partition.js
+// workers/worker/processors/partition.js
 import { EdgePartitionClient } from '../clients/partition.js';
 import { createStorageAdapter } from '../storage/factory.js';
 
@@ -849,7 +989,7 @@ export async function processPartition(workItem, env) {
   }
 }
 
-// src/worker/processors/packument.js
+// workers/worker/processors/packument.js
 import { EdgeRegistryClient } from '../clients/registry.js';
 
 /**
@@ -900,9 +1040,9 @@ export async function processPackument(workItem, env) {
 Update existing CLI commands to use the worker system:
 
 ```javascript
-// src/cli/commands/partition-refresh-distributed.js
-import { LocalWorkQueue } from '../../worker/queue/local.js';
-import { DistributedWorkQueue } from '../../worker/queue/distributed.js';
+// cli/cli/src/cmd/partition/refresh-distributed.js
+import { LocalWorkQueue } from '@_all_docs/worker/queue';
+import { DistributedWorkQueue } from '@_all_docs/worker/queue';
 import { Partition } from '@_all_docs/partition';
 
 export async function refreshPartitionsDistributed(pivots, options = {}) {
@@ -945,12 +1085,34 @@ export async function refreshPartitionsDistributed(pivots, options = {}) {
 
 ### Phase 7: Deployment Configuration
 
-#### 7.1 Cloudflare Workers (wrangler.toml)
+The `@_all_docs/worker` package can be built and deployed independently, reducing bundle sizes for edge deployments.
+
+#### 7.1 Building for Different Targets
+
+```bash
+# From the workers/worker directory
+
+# Build for all targets
+pnpm build
+
+# Build specifically for Cloudflare Workers
+pnpm build:cf
+
+# Build specifically for Fastly Compute
+pnpm build:fastly
+```
+
+#### 7.2 Cloudflare Workers (wrangler.toml)
 
 ```toml
+# workers/worker/wrangler.toml
 name = "all-docs-worker"
-main = "dist/cloudflare.js"
-compatibility_date = "2024-01-01"
+main = "./dist/cloudflare.mjs"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat_v2"]
+
+[build]
+command = "pnpm build:cf"
 
 [env.production]
 kv_namespaces = [
@@ -965,7 +1127,7 @@ name = "WORK_QUEUE"
 class_name = "WorkQueue"
 ```
 
-#### 7.2 Docker Compose for Local Development
+#### 7.3 Docker Compose for Local Development
 
 ```yaml
 version: '3.8'
