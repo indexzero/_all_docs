@@ -1,7 +1,7 @@
 {
   "name": "@_all_docs/frame",
   "description": "All operations related to _all_docs data 'frames'",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "main": "index.js",
   "type": "module",
   "repository": {
