@@ -8,7 +8,7 @@
 "@_all_docs/partition": minor
 ---
 
-Revamped 0.1.0 release: Complete monorepo restructure with workspace packages
+Initial 0.1.0 release: Complete monorepo restructure with workspace packages
 
 - Migrated from single package to pnpm workspace monorepo structure
 - Created dedicated packages for cache, config, exec, frame, packument, and partition functionality
