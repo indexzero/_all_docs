@@ -1,7 +1,7 @@
 {
   "name": "@_all_docs/cli",
   "description": "Simple CLI for interacting with _all_docs functionality",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "main": "index.js",
   "type": "module",
   "repository": {
