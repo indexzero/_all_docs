@@ -65,7 +65,7 @@ class Partition {
 
     const startKey = searchParams.get('startkey');
     const endKey = searchParams.get('endkey');
-    const {origin} = url;
+    const { origin } = url;
 
     return new Partition({ startKey, endKey, origin });
   }
@@ -89,10 +89,6 @@ class Partition {
   }
 }
 
-export {
-
-  Partition
-
-};
-export {PartitionSet} from './set.js';
-export {PartitionClient} from './client.js';
+export { Partition };
+export { PartitionSet } from './set.js';
+export { PartitionClient } from './client.js';

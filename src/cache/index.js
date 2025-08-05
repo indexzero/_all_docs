@@ -22,6 +22,4 @@ class Cache extends HttpBufferCache {
   }
 }
 
-export {
-  Cache
-};
+export { Cache };

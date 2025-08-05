@@ -111,8 +111,6 @@ class PartitionFrame extends Frame {
   }
 }
 
-export {
-  PackumentFrame,
-  PartitionFrame
-};
+export { PackumentFrame,
+  PartitionFrame };
 

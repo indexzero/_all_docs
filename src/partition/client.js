@@ -16,7 +16,7 @@ import pMap from 'p-map';
 import { RegistryClient, CacheEntry } from '@vltpkg/registry-client';
 import { XDG } from '@vltpkg/xdg';
 import { Cache } from '@vltpkg/cache';
-import { register as cacheUnzipRegister } from '@vltpkg/cache-unzip'
+import { register as cacheUnzipRegister } from '@vltpkg/cache-unzip';
 // Here. Be. Dragons. 🐲
 import unstable from './unstable.js';
 import { Partition } from './index.js';

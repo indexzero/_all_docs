@@ -6,6 +6,4 @@ function execId(length) {
     .slice(0, length);
 }
 
-export {
-  execId
-};
+export { execId };

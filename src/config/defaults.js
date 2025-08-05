@@ -22,6 +22,4 @@ const defaults = {
   }
 };
 
-export {
-  defaults
-};
+export { defaults };

@@ -7,7 +7,12 @@ export default {
     'import/extensions': 'off',
     '@stylistic/comma-dangle': ['error', 'never'],
     '@stylistic/indent-binary-ops': ['error', 2],
-    '@stylistic/object-curly-spacing': 'off',
+    '@stylistic/object-curly-spacing': ['error', 'always'],
+    '@stylistic/object-curly-newline': ['error', {
+      ObjectExpression: { multiline: true, consistent: true },
+      ObjectPattern: { multiline: true, consistent: true },
+      ImportDeclaration: { multiline: true, consistent: true }
+    }],
     '@stylistic/function-paren-newline': 'off',
     'unicorn/no-process-exit': 'off',
     'unicorn/import-style': 'off',

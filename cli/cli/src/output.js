@@ -19,6 +19,4 @@ async function outputCommand({ command, usage, name }, cli) {
   }
 }
 
-export {
-  outputCommand
-};
+export { outputCommand };
