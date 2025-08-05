@@ -1,6 +1,7 @@
 packages:
   - 'cli/*'
   - 'src/*'
+  - 'workers/*'
 
 catalog:
   '@vltpkg/cache': 0.0.0-9
