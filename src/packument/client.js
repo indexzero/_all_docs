@@ -15,7 +15,7 @@ import pMap from 'p-map';
 import { RegistryClient, CacheEntry } from '@vltpkg/registry-client';
 import { XDG } from '@vltpkg/xdg';
 import { Cache } from '@vltpkg/cache';
-import { cacheUnzipRegister } from '@vltpkg/cache-unzip';
+import { register as cacheUnzipRegister } from '@vltpkg/cache-unzip'
 
 const xdg = new XDG('_all_docs');
 const debug = debuglog('_all_docs:partition:client');
