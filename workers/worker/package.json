@@ -29,6 +29,9 @@
   "scripts": {
     "build": "unbuild",
     "build:cf": "unbuild --preset cloudflare",
-    "build:fastly": "unbuild --preset fastly"
+    "build:fastly": "unbuild --preset fastly",
+    "start": "node node.js",
+    "start:dev": "node --watch node.js",
+    "test:node": "node test-node.js"
   }
 }
