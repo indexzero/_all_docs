@@ -1,7 +1,7 @@
 {
   "name": "@_all_docs/partition",
   "description": "Fetch, cache, & operate with _all_docs-like `{ rows: [{ _id, _rev, value}] }` partitions",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "main": "index.js",
   "type": "module",
   "repository": {
