@@ -1,0 +1,30 @@
+{
+  "name": "@_all_docs/packument",
+  "description": "Fetch & manipulate packuments from registries",
+  "version": "0.0.3",
+  "main": "index.js",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/indexzero/_all_docs.git",
+    "directory": "src/packument"
+  },
+  "dependencies": {
+    "@vltpkg/cache": "catalog:",
+    "@vltpkg/cache-unzip": "catalog:",
+    "@vltpkg/registry-client": "catalog:",
+    "@vltpkg/xdg": "catalog:",
+    "debug": "^4.4.1",
+    "p-map": "catalog:"
+  },
+  "author": "Charlie Robbins <npm@charlie.dev>",
+  "license": "Apache-2.0",
+  "scripts": {
+    "lint": "xo",
+    "lint:fix": "xo --fix"
+  },
+  "bugs": {
+    "url": "https://github.com/indexzero/_all_docs/issues"
+  },
+  "homepage": "https://github.com/indexzero/_all_docs#readme"
+}

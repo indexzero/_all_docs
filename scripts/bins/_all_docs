@@ -1,0 +1,4 @@
+#!/bin/sh
+
+SCRIPT_DIR=$(cd "$(dirname "$0")/../../" && pwd)
+NODE_OPTIONS="--no-warnings" node "$SCRIPT_DIR/cli/cli/bin/all-docs-cli.js" "$@"

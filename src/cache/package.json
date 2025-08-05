@@ -1,0 +1,26 @@
+{
+  "name": "@_all_docs/cache",
+  "description": "A hierarchical file-system buffer cache for HTTP responses",
+  "version": "0.0.3",
+  "main": "index.js",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/indexzero/_all_docs.git",
+    "directory": "src/cache"
+  },
+  "author": "Charlie Robbins <npm@charlie.dev>",
+  "license": "Apache-2.0",
+  "scripts": {
+    "lint": "xo",
+    "lint:fix": "xo --fix"
+  },
+  "bugs": {
+    "url": "https://github.com/indexzero/_all_docs/issues"
+  },
+  "homepage": "https://github.com/indexzero/_all_docs#readme",
+  "dependencies": {
+    "@vltpkg/cache": "catalog:",
+    "@vltpkg/registry-client": "catalog:"
+  }
+}

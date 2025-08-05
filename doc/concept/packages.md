@@ -85,12 +85,7 @@ const {
 
 ## `@_all_docs/frame`
 
-All operations related to _all_docs data "frames":
-
-* Set operations (add, remove, intersect, etc)
-* Run operations (i.e. map-reduce execution, reading results, etc.)
-
-> n.b. intentionally not calling these "dataframes" to avoid confusion with operations available on a pandas "dataframe"
+> See: [src/frame/README.md](/src/frame/README.md)
 
 ## `@_all_docs/packument`, `@_all_docs/partition`, `@_all_docs/http`
 
