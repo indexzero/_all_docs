@@ -22,7 +22,7 @@
     "p-map-series": "catalog:"
   },
   "scripts": {
-    "test": "node --test test/index.test.js",
+    "test": "node --test test/*.test.js",
     "lint": "xo",
     "lint:fix": "xo --fix"
   },

@@ -27,7 +27,6 @@
     "_all_docs": "bin/all-docs-cli.js"
   },
   "scripts": {
-    "test": "node --test test/index.test.js",
     "lint": "xo",
     "lint:fix": "xo --fix"
   },

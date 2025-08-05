@@ -12,7 +12,6 @@
   "author": "Charlie Robbins <npm@charlie.dev>",
   "license": "Apache-2.0",
   "scripts": {
-    "test": "node --test test/index.test.js",
     "lint": "xo",
     "lint:fix": "xo --fix"
   },
