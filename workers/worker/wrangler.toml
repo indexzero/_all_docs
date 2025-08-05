@@ -1,0 +1,27 @@
+name = "all-docs-worker"
+main = "./cloudflare.js"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat_v2"]
+
+# Build configuration
+[build]
+command = "npm run build:cf"
+
+# Development environment
+[env.development]
+vars = { NPM_ORIGIN = "https://replicate.npmjs.com" }
+
+# Production environment
+[env.production]
+vars = { NPM_ORIGIN = "https://replicate.npmjs.com" }
+
+# KV namespace bindings (example - replace with your actual namespace IDs)
+# [[env.production.kv_namespaces]]
+# binding = "CACHE_KV"
+# id = "your-kv-namespace-id"
+
+# Durable Object bindings (example)
+# [[env.production.durable_objects.bindings]]
+# name = "WORK_QUEUE"
+# class_name = "WorkQueue"
+# script_name = "all-docs-worker"
