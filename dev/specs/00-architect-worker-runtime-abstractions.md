@@ -156,45 +156,115 @@ Using your `edge-architect` agent:
 
 ### Phase 0: Package Structure
 
-Create a new `@_all_docs/worker` package in the monorepo to isolate worker functionality and minimize bundle sizes for edge deployments.
+Create multiple packages in the monorepo to separate concerns and minimize bundle sizes for edge deployments.
 
-**Benefits of separate package:**
-- Reduced bundle sizes for edge deployments (only worker code is bundled)
+**Benefits of modular architecture:**
+- Domain logic stays with domain packages
+- Minimal worker abstraction layer
 - Independent versioning and deployment
 - Clear separation of concerns
-- Easier to test worker functionality in isolation
-- Can be published to npm separately if needed
+- Reusable components across different contexts
+- Smaller bundle sizes - import only what's needed
 
 #### 0.1 Monorepo Structure
 
 ```
 _all_docs/
 ├── src/
-│   ├── cache/         # @_all_docs/cache
+│   ├── cache/         # @_all_docs/cache (enhanced with HTTP client base)
+│   │   ├── http.js    # Base HTTP client for cross-runtime support
+│   │   ├── cache.js   # Cache abstraction accepting storage drivers
+│   │   └── index.js
 │   ├── config/        # @_all_docs/config
 │   ├── exec/          # @_all_docs/exec
 │   ├── frame/         # @_all_docs/frame
 │   ├── packument/     # @_all_docs/packument
+│   │   └── client.js  # Edge-aware packument client (extends cache/http)
 │   └── partition/     # @_all_docs/partition
+│       └── client.js  # Edge-aware partition client (extends cache/http)
 ├── cli/
 │   └── cli/           # @_all_docs/cli
 ├── workers/
-│   └── worker/        # @_all_docs/worker (NEW)
+│   ├── types/         # @_all_docs/types (NEW)
+│   │   ├── package.json
+│   │   └── index.js
+│   ├── storage/       # @_all_docs/storage (NEW)
+│   │   ├── package.json
+│   │   ├── drivers/
+│   │   │   ├── node.js
+│   │   │   ├── cloudflare.js
+│   │   │   ├── fastly.js
+│   │   │   └── gcs.js
+│   │   └── index.js
+│   ├── queue/         # @_all_docs/queue (NEW)
+│   │   ├── package.json
+│   │   ├── local.js
+│   │   ├── distributed.js
+│   │   ├── edge.js
+│   │   └── index.js
+│   └── worker/        # @_all_docs/worker (MINIMAL)
 │       ├── package.json
-│       ├── index.js
-│       ├── app.js
-│       ├── http/
-│       ├── storage/
-│       ├── queue/
-│       ├── clients/
+│       ├── app.js     # Hono application
 │       ├── processors/
-│       └── runtime/
+│       ├── runtime/
+│       └── index.js
 └── pnpm-workspace.yaml
 ```
 
-#### 0.2 Worker Package Configuration
+#### 0.2 Package Configurations
 
 ```json
+// workers/types/package.json
+{
+  "name": "@_all_docs/types",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./index.js"
+  }
+}
+
+// workers/storage/package.json
+{
+  "name": "@_all_docs/storage",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./drivers/node": "./drivers/node.js",
+    "./drivers/cloudflare": "./drivers/cloudflare.js",
+    "./drivers/fastly": "./drivers/fastly.js",
+    "./drivers/gcs": "./drivers/gcs.js"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.0.0"
+  },
+  "peerDependencies": {
+    "@_all_docs/types": "workspace:*"
+  }
+}
+
+// workers/queue/package.json
+{
+  "name": "@_all_docs/queue",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./local": "./local.js",
+    "./distributed": "./distributed.js",
+    "./edge": "./edge.js"
+  },
+  "dependencies": {
+    "p-queue": "^8.0.0",
+    "bullmq": "^5.0.0",
+    "p-retry": "^6.0.0"
+  },
+  "peerDependencies": {
+    "@_all_docs/types": "workspace:*"
+  }
+}
+
 // workers/worker/package.json
 {
   "name": "@_all_docs/worker",
@@ -203,17 +273,11 @@ _all_docs/
   "exports": {
     ".": "./index.js",
     "./app": "./app.js",
-    "./http": "./http/index.js",
-    "./storage": "./storage/index.js",
-    "./queue": "./queue/index.js",
     "./processors": "./processors/index.js",
     "./runtime": "./runtime/index.js"
   },
   "dependencies": {
-    "hono": "^4.0.0",
-    "p-queue": "catalog:",
-    "bullmq": "^5.0.0",
-    "p-retry": "^6.0.0"
+    "hono": "^4.0.0"
   },
   "devDependencies": {
     "unenv": "^1.9.0",
@@ -222,12 +286,11 @@ _all_docs/
   },
   "peerDependencies": {
     "@_all_docs/partition": "workspace:*",
-    "@_all_docs/packument": "workspace:*"
-  },
-  "scripts": {
-    "build": "unbuild",
-    "build:cf": "unbuild --preset cloudflare",
-    "build:fastly": "unbuild --preset fastly"
+    "@_all_docs/packument": "workspace:*",
+    "@_all_docs/cache": "workspace:*",
+    "@_all_docs/types": "workspace:*",
+    "@_all_docs/queue": "workspace:*",
+    "@_all_docs/storage": "workspace:*"
   }
 }
 ```
@@ -242,28 +305,16 @@ packages:
   - 'workers/*'  # Add this line
 ```
 
-#### 0.4 Main Worker Package Export
+#### 0.4 Type Definitions Package
 
 ```javascript
-// workers/worker/index.js
-export { default as app } from './app.js';
-export * from './http/index.js';
-export * from './storage/index.js';
-export * from './queue/index.js';
-export * from './processors/index.js';
-export * from './runtime/index.js';
-
-// Re-export key types
-export * from './types.js';
-```
-
-```javascript
-// workers/worker/types.js
+// workers/types/index.js
 /**
  * @typedef {Object} WorkerEnv
  * @property {KVNamespace} [CACHE_KV] - Cloudflare KV namespace
  * @property {Dictionary} [CACHE_DICT] - Fastly edge dictionary
  * @property {string} [CACHE_DIR] - Node.js cache directory
+ * @property {string} [CACHE_BUCKET] - Google Cloud Storage bucket
  * @property {string} NPM_ORIGIN - npm registry origin
  * @property {'node' | 'cloudflare' | 'fastly' | 'cloudrun'} RUNTIME
  */
@@ -287,10 +338,26 @@ export * from './types.js';
  * @property {Object} [metrics] - Optional performance metrics
  */
 
+/**
+ * @typedef {Object} StorageDriver
+ * @property {(key: string) => Promise<any>} get
+ * @property {(key: string, value: any, options?: Object) => Promise<void>} put
+ * @property {(key: string) => Promise<boolean>} has
+ * @property {(key: string) => Promise<void>} delete
+ * @property {(prefix: string) => AsyncIterator<string>} list
+ */
+
 export const WorkItemTypes = {
   PARTITION_SET: 'partition-set',
   PARTITION: 'partition',
   PACKUMENT: 'packument'
+};
+
+export const RuntimeTypes = {
+  NODE: 'node',
+  CLOUDFLARE: 'cloudflare',
+  FASTLY: 'fastly',
+  CLOUDRUN: 'cloudrun'
 };
 ```
 
@@ -375,23 +442,23 @@ import app from './app.js';
 app.fire(); // Fastly-specific initialization
 ```
 
-### Phase 2: Abstraction Layers for HTTP and Storage
+### Phase 2: Enhanced Cache Package with HTTP and Storage Abstractions
 
-Create abstractions that allow the existing codebase to work across different runtimes by providing unified interfaces for HTTP requests and storage.
+Enhance the existing `@_all_docs/cache` package to include cross-runtime HTTP client base and storage driver support.
 
-#### 2.1 HTTP Client Abstraction
-
-Replace direct `undici` usage with a fetch-based abstraction that maintains API compatibility:
+#### 2.1 Base HTTP Client in Cache Package
 
 ```javascript
-// workers/worker/http/client.js
+// src/cache/http.js
 /**
- * HTTPClient abstraction that wraps native fetch API
+ * Base HTTP client that works across all runtimes
  * Provides undici-compatible interface for existing code
  */
-export class HTTPClient {
-  constructor(origin) {
+export class BaseHTTPClient {
+  constructor(origin, options = {}) {
     this.origin = origin;
+    this.cache = options.cache;
+    this.agent = options.agent;
   }
 
   /**
@@ -402,7 +469,16 @@ export class HTTPClient {
   async request(path, options = {}) {
     const url = new URL(path, this.origin);
     
-    // Map undici-style options to fetch
+    // For Node.js with undici available
+    if (this.agent && this.agent.request) {
+      return this.agent.request({
+        origin: url.origin,
+        path: url.pathname + url.search,
+        ...options
+      });
+    }
+    
+    // For edge runtimes, use native fetch
     const fetchOptions = {
       method: options.method || 'GET',
       headers: this.normalizeHeaders(options.headers),
@@ -423,7 +499,6 @@ export class HTTPClient {
   }
 
   normalizeHeaders(headers = {}) {
-    // Convert various header formats to Headers object
     return new Headers(headers);
   }
 
@@ -434,41 +509,128 @@ export class HTTPClient {
     });
     return obj;
   }
+
+  // Cache control methods
+  setCacheHeaders(options, cacheEntry) {
+    if (cacheEntry?.etag) {
+      options.headers = options.headers || {};
+      options.headers['if-none-match'] = cacheEntry.etag;
+    }
+  }
 }
 
-// Factory function to create client based on environment
-export function createHTTPClient(origin, env) {
-  if (env.RUNTIME === 'node' && globalThis.undici) {
-    // In Node.js, we can still use undici directly
-    const { Client } = await import('undici');
-    return new Client(origin);
+// Factory function to create appropriate agent
+export async function createAgent(env) {
+  if (env.RUNTIME === 'node' && !globalThis.fetch) {
+    const { Agent } = await import('undici');
+    return new Agent({
+      bodyTimeout: 600_000,
+      headersTimeout: 600_000,
+      keepAliveTimeout: 600_000,
+      connections: 256
+    });
   }
-  
-  // For edge runtimes, use our fetch-based client
-  return new HTTPClient(origin);
+  return null;
 }
 ```
 
-#### 2.2 Storage Abstraction
-
-Create a unified storage interface that works with filesystem (Node.js) and KV stores (edge):
+#### 2.2 Cache Abstraction with Storage Drivers
 
 ```javascript
-// workers/worker/storage/interface.js
-/**
- * @typedef {Object} StorageAdapter
- * @property {(key: string) => Promise<any>} get
- * @property {(key: string, value: any, options?: Object) => Promise<void>} put
- * @property {(key: string) => Promise<boolean>} has
- * @property {(key: string) => Promise<void>} delete
- * @property {(prefix: string) => AsyncIterator<string>} list
- */
+// src/cache/cache.js
+import { createStorageDriver } from '@_all_docs/storage';
 
-// workers/worker/storage/node.js
+/**
+ * Cache abstraction that accepts storage drivers
+ */
+export class Cache {
+  constructor(options = {}) {
+    this.path = options.path;
+    this.driver = options.driver || createStorageDriver(options.env);
+  }
+
+  async fetch(key, options = {}) {
+    try {
+      const value = await this.driver.get(key);
+      // Handle cache validation, ETags, etc.
+      return value;
+    } catch (error) {
+      if (error.message.includes('not found')) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async set(key, value, options = {}) {
+    return this.driver.put(key, value, options);
+  }
+
+  async has(key) {
+    return this.driver.has(key);
+  }
+
+  async delete(key) {
+    return this.driver.delete(key);
+  }
+
+  async *keys(prefix) {
+    yield* this.driver.list(prefix);
+  }
+}
+```
+
+### Phase 3: Storage Drivers Package
+
+Create the `@_all_docs/storage` package with pluggable storage drivers for different runtimes.
+
+#### 3.1 Storage Driver Interface
+
+```javascript
+// workers/storage/index.js
+import { RuntimeTypes } from '@_all_docs/types';
+
+export { NodeStorageDriver } from './drivers/node.js';
+export { CloudflareStorageDriver } from './drivers/cloudflare.js';
+export { FastlyStorageDriver } from './drivers/fastly.js';
+export { GCSStorageDriver } from './drivers/gcs.js';
+
+export function createStorageDriver(env) {
+  switch (env.RUNTIME) {
+    case RuntimeTypes.NODE:
+      const { NodeStorageDriver } = await import('./drivers/node.js');
+      return new NodeStorageDriver(env.CACHE_DIR);
+    
+    case RuntimeTypes.CLOUDFLARE:
+      const { CloudflareStorageDriver } = await import('./drivers/cloudflare.js');
+      return new CloudflareStorageDriver(env.CACHE_KV);
+    
+    case RuntimeTypes.FASTLY:
+      const { FastlyStorageDriver } = await import('./drivers/fastly.js');
+      return new FastlyStorageDriver(env.CACHE_DICT);
+    
+    case RuntimeTypes.CLOUDRUN:
+      if (env.CACHE_BUCKET) {
+        const { GCSStorageDriver } = await import('./drivers/gcs.js');
+        return new GCSStorageDriver(env.CACHE_BUCKET);
+      }
+      const { NodeStorageDriver: NodeDriver } = await import('./drivers/node.js');
+      return new NodeDriver(env.CACHE_DIR || '/tmp/cache');
+    
+    default:
+      throw new Error(`Unsupported runtime: ${env.RUNTIME}`);
+  }
+}
+```
+
+#### 3.2 Node.js Storage Driver
+
+```javascript
+// workers/storage/drivers/node.js
 import { readFile, writeFile, access, unlink, readdir } from 'fs/promises';
 import { join } from 'path';
 
-export class NodeStorageAdapter {
+export class NodeStorageDriver {
   constructor(basePath) {
     this.basePath = basePath;
   }
@@ -509,8 +671,8 @@ export class NodeStorageAdapter {
   }
 }
 
-// workers/worker/storage/cloudflare.js
-export class CloudflareStorageAdapter {
+// workers/storage/drivers/cloudflare.js
+export class CloudflareStorageDriver {
   constructor(kvNamespace) {
     this.kv = kvNamespace;
   }
@@ -546,10 +708,10 @@ export class CloudflareStorageAdapter {
   }
 }
 
-// workers/worker/storage/gcs.js
+// workers/storage/drivers/gcs.js
 import { Storage } from '@google-cloud/storage';
 
-export class GCSStorageAdapter {
+export class GCSStorageDriver {
   constructor(bucketName) {
     this.storage = new Storage();
     this.bucket = this.storage.bucket(bucketName);
@@ -593,37 +755,16 @@ export class GCSStorageAdapter {
   }
 }
 
-// workers/worker/storage/factory.js
-export function createStorageAdapter(env) {
-  switch (env.RUNTIME) {
-    case 'node':
-      return new NodeStorageAdapter(env.CACHE_DIR);
-    case 'cloudflare':
-      return new CloudflareStorageAdapter(env.CACHE_KV);
-    case 'fastly':
-      return new FastlyStorageAdapter(env.CACHE_DICT);
-    case 'cloudrun':
-      // Cloud Run can use GCS or local filesystem
-      if (env.CACHE_BUCKET) {
-        return new GCSStorageAdapter(env.CACHE_BUCKET);
-      }
-      return new NodeStorageAdapter(env.CACHE_DIR || '/tmp/cache');
-    default:
-      throw new Error(`Unsupported runtime: ${env.RUNTIME}`);
-  }
-}
 ```
 
-### Phase 3: Work Distribution with Queue Libraries
+### Phase 4: Queue Package
 
-Use existing npm packages for work distribution instead of building from scratch. Different strategies for different deployment scenarios.
+Create the `@_all_docs/queue` package with different queue implementations for various deployment scenarios.
 
-#### 3.1 Local Development & Single Region (p-queue)
-
-For local development and single-region deployments, use `p-queue` for in-memory queue management:
+#### 4.1 Local Queue Implementation
 
 ```javascript
-// workers/worker/queue/local.js
+// workers/queue/local.js
 import PQueue from 'p-queue';
 import pRetry from 'p-retry';
 
@@ -671,12 +812,10 @@ export class LocalWorkQueue {
 }
 ```
 
-#### 3.2 Production Multi-Region (BullMQ)
-
-For production deployments with Redis, use BullMQ for distributed work queues:
+#### 4.2 Distributed Queue Implementation
 
 ```javascript
-// workers/worker/queue/distributed.js
+// workers/queue/distributed.js
 import { Queue, Worker, QueueScheduler } from 'bullmq';
 
 export class DistributedWorkQueue {
@@ -742,12 +881,10 @@ export class DistributedWorkQueue {
 }
 ```
 
-#### 3.3 Edge-Native Work Distribution
-
-For edge deployments without Redis, use Cloudflare Durable Objects or Fastly's real-time messaging:
+#### 4.3 Edge Queue Implementation
 
 ```javascript
-// workers/worker/queue/edge.js
+// workers/queue/edge.js
 export class EdgeWorkQueue {
   constructor(env) {
     this.env = env;
@@ -770,140 +907,180 @@ export class EdgeWorkQueue {
 }
 ```
 
-### Phase 4: Adapting Existing Clients for Edge Runtimes
+### Phase 5: Adapting Existing Clients in Domain Packages
 
-Modify the existing `PartitionClient` and registry clients to work with our abstractions.
+Modify the existing clients in `src/partition` and `src/packument` to extend the base HTTP client and work across runtimes.
 
-#### 4.1 Edge-Compatible Partition Client
-
-Adapt the existing partition client to use our HTTP and storage abstractions:
+#### 5.1 Enhanced Partition Client
 
 ```javascript
-// workers/worker/clients/partition.js
-import { createHTTPClient } from '../http/client.js';
-import { createStorageAdapter } from '../storage/factory.js';
+// src/partition/client.js
+import { BaseHTTPClient, createAgent } from '@_all_docs/cache/http';
+import { Cache } from '@_all_docs/cache';
+import { CacheEntry } from '@vltpkg/registry-client';
+import { Partition } from './index.js';
 
-export class EdgePartitionClient {
+export class PartitionClient extends BaseHTTPClient {
   constructor(options = {}) {
-    this.origin = options.origin || 'https://replicate.npmjs.com';
-    this.env = options.env;
-    this.http = createHTTPClient(this.origin, this.env);
-    this.storage = createStorageAdapter(this.env);
-  }
-
-  /**
-   * Fetch partition data with caching
-   * @param {Object} partition
-   * @param {string} partition.startKey
-   * @param {string} partition.endKey
-   * @returns {Promise<Object>}
-   */
-  async fetchPartition(partition) {
-    const cacheKey = this.getCacheKey(partition);
-    
-    // Check cache first
-    try {
-      const cached = await this.storage.get(cacheKey);
-      if (cached && this.isFresh(cached)) {
-        return cached;
-      }
-    } catch (err) {
-      // Cache miss is ok
-    }
-    
-    // Build URL with query parameters
-    const params = new URLSearchParams();
-    if (partition.startKey) {
-      params.set('startkey', JSON.stringify(partition.startKey));
-    }
-    if (partition.endKey) {
-      params.set('endkey', JSON.stringify(partition.endKey));
-    }
-    params.set('limit', '10000');
-    
-    const path = `/_all_docs?${params}`;
-    const response = await this.http.request(path);
-    
-    if (response.statusCode === 304) {
-      // Not modified, return cached version
-      return await this.storage.get(cacheKey);
-    }
-    
-    if (response.statusCode !== 200) {
-      throw new Error(`HTTP ${response.statusCode}: ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    
-    // Cache the result
-    await this.storage.put(cacheKey, {
-      data,
-      etag: response.headers.etag,
-      timestamp: Date.now(),
+    const agent = await createAgent(options.env);
+    super(options.origin || 'https://replicate.npmjs.com', { 
+      agent,
+      cache: options.cache 
     });
     
-    return data;
+    this.env = options.env;
+    this.cache = options.cache || new Cache({ 
+      path: 'partitions',
+      env: options.env 
+    });
+    
+    // Maintain compatibility with existing API
+    this.dryRun = options.dryRun;
+    this.limit = options.limit || 10;
   }
 
-  getCacheKey(partition) {
-    // Compatible with existing cache key format
-    const start = partition.startKey || 'null';
-    const end = partition.endKey || 'null';
-    return `${start}__${end}`;
-  }
+  async request({ startKey, endKey }, options = {}) {
+    const url = new URL('_all_docs', this.origin);
+    if (startKey) {
+      url.searchParams.set('startkey', `"${startKey}"`);
+    }
+    if (endKey) {
+      url.searchParams.set('endkey', `"${endKey}"`);
+    }
+    url.searchParams.set('limit', '10000');
 
-  isFresh(cached, maxAge = 3600000) {
-    return Date.now() - cached.timestamp < maxAge;
+    const cacheKey = Partition.cacheKey(startKey, endKey, this.origin);
+    
+    // Check cache first
+    const cached = await this.cache.fetch(cacheKey);
+    if (cached && cached.valid) {
+      cached.hit = true;
+      return cached;
+    }
+
+    // Add cache headers if we have a stale entry
+    if (cached) {
+      this.setCacheHeaders(options, cached);
+    }
+
+    const response = await super.request(url.pathname + url.search, {
+      ...options,
+      headers: {
+        ...options.headers,
+        'npm-replication-opt-in': 'true'
+      }
+    });
+
+    if (response.statusCode === 304 && cached) {
+      return cached;
+    }
+
+    if (response.statusCode !== 200) {
+      throw new Error(`HTTP ${response.statusCode}`);
+    }
+
+    // Create cache entry
+    const result = new CacheEntry(
+      response.statusCode,
+      response.headers,
+      { trustIntegrity: options.trustIntegrity }
+    );
+
+    const body = await response.json();
+    result.setBody(body);
+
+    // Cache the result
+    await this.cache.set(cacheKey, result.encode());
+    return result;
   }
 }
 ```
 
-#### 4.2 Edge-Compatible Registry Client
-
-Create a minimal registry client that extends the abstracted base:
+#### 5.2 Enhanced Packument Client
 
 ```javascript
-// workers/worker/clients/registry.js
-import { createHTTPClient } from '../http/client.js';
+// src/packument/client.js
+import { BaseHTTPClient, createAgent } from '@_all_docs/cache/http';
+import { Cache } from '@_all_docs/cache';
+import { CacheEntry } from '@vltpkg/registry-client';
 
-export class EdgeRegistryClient {
+export class PackumentClient extends BaseHTTPClient {
   constructor(options = {}) {
-    this.origin = options.origin || 'https://registry.npmjs.org';
+    const agent = await createAgent(options.env);
+    super(options.origin || 'https://registry.npmjs.org', { 
+      agent,
+      cache: options.cache 
+    });
+    
     this.env = options.env;
-    this.http = createHTTPClient(this.origin, this.env);
+    this.cache = options.cache || new Cache({ 
+      path: 'packuments',
+      env: options.env 
+    });
+    
+    // Maintain compatibility with existing API
+    this.dryRun = options.dryRun;
+    this.limit = options.limit || 10;
   }
 
-  /**
-   * Fetch a packument with proper headers
-   * @param {string} name - Package name
-   * @returns {Promise<Object>}
-   */
-  async getPackument(name) {
-    const headers = {
-      'Accept': 'application/vnd.npm.install-v1+json',
-      'Accept-Encoding': 'gzip',
-    };
+  async request(url, options = {}) {
+    const cacheKey = typeof url === 'string' ? url : url.pathname;
     
-    const response = await this.http.request(`/${name}`, { headers });
-    
+    // Check cache first
+    const cached = await this.cache.fetch(cacheKey);
+    if (cached && cached.valid) {
+      cached.hit = true;
+      return cached;
+    }
+
+    // Add cache headers if we have a stale entry
+    if (cached) {
+      this.setCacheHeaders(options, cached);
+    }
+
+    const response = await super.request(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+        'Accept': 'application/vnd.npm.install-v1+json',
+        'Accept-Encoding': 'gzip'
+      }
+    });
+
+    if (response.statusCode === 304 && cached) {
+      return cached;
+    }
+
     if (response.statusCode === 404) {
       return null;
     }
-    
+
     if (response.statusCode !== 200) {
-      throw new Error(`HTTP ${response.statusCode}: ${response.statusText}`);
+      throw new Error(`HTTP ${response.statusCode}`);
     }
-    
-    return await response.json();
+
+    // Create cache entry
+    const result = new CacheEntry(
+      response.statusCode,
+      response.headers,
+      { trustIntegrity: options.trustIntegrity }
+    );
+
+    const body = await response.json();
+    result.setBody(body);
+
+    // Cache the result
+    await this.cache.set(cacheKey, result.encode());
+    return result;
   }
 }
 ```
 
-### Phase 5: Build Configuration with unenv
+### Phase 6: Build Configuration with unenv
 
 Use `unenv` to provide Node.js API polyfills at build time for edge runtimes. This configuration is now part of the `@_all_docs/worker` package.
 
-#### 5.1 Build Configuration
+#### 6.1 Build Configuration
 
 ```javascript
 // workers/worker/build.config.js
@@ -943,7 +1120,7 @@ export default defineBuildConfig({
 });
 ```
 
-#### 5.2 Runtime Detection and Polyfills
+#### 6.2 Runtime Detection and Polyfills
 
 ```javascript
 // workers/worker/runtime.js
@@ -1003,16 +1180,15 @@ export function getEnvConfig() {
 }
 ```
 
-### Phase 6: Integration with Existing Codebase
+### Phase 7: Minimal Worker Package
 
-Adapt the existing commands to use the worker infrastructure.
+The `@_all_docs/worker` package provides the minimal abstraction necessary for the code in `src/**` to interact with different runtime environments.
 
-#### 6.1 Worker Processing Functions
+#### 7.1 Worker Processing Functions
 
 ```javascript
 // workers/worker/processors/partition.js
-import { EdgePartitionClient } from '../clients/partition.js';
-import { createStorageAdapter } from '../storage/factory.js';
+import { PartitionClient } from '@_all_docs/partition/client';
 
 /**
  * Process a partition work item
@@ -1024,19 +1200,22 @@ export async function processPartition(workItem, env) {
   const start = Date.now();
   
   try {
-    const client = new EdgePartitionClient({ env });
+    const client = new PartitionClient({ env });
     const partition = workItem.payload;
     
     // Fetch the partition data
-    const result = await client.fetchPartition(partition);
+    const result = await client.request({
+      startKey: partition.startKey,
+      endKey: partition.endKey
+    });
     
     return {
       workItemId: workItem.id,
       success: true,
       data: {
         partition,
-        rowCount: result.data.rows.length,
-        cached: result.fromCache || false,
+        rowCount: result.json()?.rows?.length || 0,
+        cached: result.hit || false,
       },
       duration: Date.now() - start,
     };
@@ -1054,7 +1233,7 @@ export async function processPartition(workItem, env) {
 }
 
 // workers/worker/processors/packument.js
-import { EdgeRegistryClient } from '../clients/registry.js';
+import { PackumentClient } from '@_all_docs/packument/client';
 
 /**
  * Process a packument work item
@@ -1066,15 +1245,22 @@ export async function processPackument(workItem, env) {
   const start = Date.now();
   
   try {
-    const client = new EdgeRegistryClient({ env });
+    const client = new PackumentClient({ env });
     const { packageName } = workItem.payload;
     
     // Fetch the packument
-    const packument = await client.getPackument(packageName);
+    const result = await client.request(`/${packageName}`);
     
-    // Store in cache
-    const storage = createStorageAdapter(env);
-    await storage.put(`packument:${packageName}`, packument);
+    if (!result) {
+      return {
+        workItemId: workItem.id,
+        success: false,
+        error: { message: 'Package not found' },
+        duration: Date.now() - start,
+      };
+    }
+    
+    const packument = result.json();
     
     return {
       workItemId: workItem.id,
@@ -1082,6 +1268,7 @@ export async function processPackument(workItem, env) {
       data: {
         packageName,
         versions: Object.keys(packument.versions || {}).length,
+        cached: result.hit || false,
       },
       duration: Date.now() - start,
     };
@@ -1099,7 +1286,7 @@ export async function processPackument(workItem, env) {
 }
 ```
 
-#### 6.2 CLI Integration
+#### 7.2 CLI Integration
 
 Update existing CLI commands to use the worker system:
 
@@ -1147,11 +1334,11 @@ export async function refreshPartitionsDistributed(pivots, options = {}) {
 }
 ```
 
-### Phase 7: Deployment Configuration
+### Phase 8: Deployment Configuration
 
 The `@_all_docs/worker` package can be built and deployed independently, reducing bundle sizes for edge deployments.
 
-#### 7.1 Building for Different Targets
+#### 8.1 Building for Different Targets
 
 ```bash
 # From the workers/worker directory
@@ -1166,7 +1353,7 @@ pnpm build:cf
 pnpm build:fastly
 ```
 
-#### 7.2 Cloudflare Workers (wrangler.toml)
+#### 8.2 Cloudflare Workers (wrangler.toml)
 
 ```toml
 # workers/worker/wrangler.toml
@@ -1191,11 +1378,11 @@ name = "WORK_QUEUE"
 class_name = "WorkQueue"
 ```
 
-#### 7.3 Google Cloud Run Deployment
+#### 8.3 Google Cloud Run Deployment
 
 Google Cloud Run uses containerized applications, so we'll use the Node.js runtime packaged in a Docker container.
 
-##### 7.3.1 Dockerfile for Cloud Run
+##### 8.3.1 Dockerfile for Cloud Run
 
 ```dockerfile
 # workers/worker/Dockerfile
@@ -1227,7 +1414,7 @@ EXPOSE 8080
 CMD ["node", "node.js"]
 ```
 
-##### 7.3.2 Cloud Run Service Configuration
+##### 8.3.2 Cloud Run Service Configuration
 
 ```yaml
 # workers/worker/service.yaml
@@ -1263,7 +1450,7 @@ spec:
             memory: "2Gi"
 ```
 
-##### 7.3.3 Deployment Commands
+##### 8.3.3 Deployment Commands
 
 ```bash
 # Build and push container
@@ -1278,7 +1465,7 @@ gcloud run deploy all-docs-worker \
   --set-env-vars NPM_ORIGIN=https://replicate.npmjs.com
 ```
 
-#### 7.4 Docker Compose for Local Development
+#### 8.4 Docker Compose for Local Development
 
 ```yaml
 version: '3.8'
@@ -1309,7 +1496,7 @@ services:
       - "3002:3002"
 ```
 
-### Phase 8: Implementation Roadmap
+### Phase 9: Implementation Roadmap
 
 1. **Week 1-2: Core Abstractions**
    - Implement HTTP client abstraction with undici compatibility
@@ -1335,9 +1522,12 @@ services:
 
 ### Key Design Decisions
 
-1. **Use Existing NPM Packages**: Leverage Hono, unenv, BullMQ instead of building from scratch
-2. **Maintain Compatibility**: Abstractions preserve existing code structure and APIs
-3. **Progressive Enhancement**: Start with Node.js, add edge runtimes incrementally
-4. **No Build Step for Development**: Use native ES modules, build only for edge deployment
-5. **Flexible Queue Strategy**: Different queue implementations for different deployment scenarios
-6. **Container Support**: Google Cloud Run provides a middle ground between edge and traditional deployment
+1. **Domain-Centric Architecture**: Domain logic stays in domain packages (`src/*`), not in worker code
+2. **Minimal Worker Abstraction**: Worker package is just a thin runtime adapter
+3. **Separate Concerns**: Queue, storage, and types are separate packages for modularity
+4. **HTTP in Cache Package**: Base HTTP client lives in `@_all_docs/cache` for consistency
+5. **Storage Drivers**: Pluggable storage drivers instead of monolithic adapters
+6. **Use Existing NPM Packages**: Leverage Hono, unenv, BullMQ instead of building from scratch
+7. **Maintain Compatibility**: Abstractions preserve existing code structure and APIs
+8. **Progressive Enhancement**: Start with Node.js, add edge runtimes incrementally
+9. **Container Support**: Google Cloud Run provides a middle ground between edge and traditional deployment
