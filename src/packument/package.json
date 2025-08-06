@@ -10,10 +10,7 @@
     "directory": "src/packument"
   },
   "dependencies": {
-    "@vltpkg/cache": "catalog:",
-    "@vltpkg/cache-unzip": "catalog:",
-    "@vltpkg/registry-client": "catalog:",
-    "@vltpkg/xdg": "catalog:",
+    "@_all_docs/cache": "workspace:*",
     "debug": "^4.4.1",
     "p-map": "catalog:"
   },

@@ -13,13 +13,8 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@_all_docs/cache": "workspace:*",
-    "@vltpkg/cache": "catalog:",
-    "@vltpkg/cache-unzip": "catalog:",
-    "@vltpkg/registry-client": "catalog:",
-    "@vltpkg/xdg": "catalog:",
     "debug": "^4.4.1",
-    "p-map": "catalog:",
-    "p-map-series": "catalog:"
+    "p-map": "catalog:"
   },
   "scripts": {
     "test": "node --test test/*.test.js",

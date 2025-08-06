@@ -20,7 +20,9 @@
   },
   "homepage": "https://github.com/indexzero/_all_docs#readme",
   "dependencies": {
-    "@vltpkg/cache": "catalog:",
-    "@vltpkg/registry-client": "catalog:"
+    "undici": "catalog:"
+  },
+  "peerDependencies": {
+    "@_all_docs/storage": "workspace:*"
   }
 }
