@@ -5,17 +5,10 @@
   "exports": {
     ".": "./index.js",
     "./app": "./app.js",
-    "./http": "./http/index.js",
-    "./storage": "./storage/index.js",
-    "./queue": "./queue/index.js",
-    "./processors": "./processors/index.js",
-    "./runtime": "./runtime/index.js"
+    "./processors": "./processors/index.js"
   },
   "dependencies": {
-    "hono": "^4.0.0",
-    "p-queue": "^8.0.0",
-    "bullmq": "^5.0.0",
-    "p-retry": "^6.0.0"
+    "hono": "^4.0.0"
   },
   "devDependencies": {
     "unenv": "^1.9.0",
@@ -24,7 +17,11 @@
   },
   "peerDependencies": {
     "@_all_docs/partition": "workspace:*",
-    "@_all_docs/packument": "workspace:*"
+    "@_all_docs/packument": "workspace:*",
+    "@_all_docs/cache": "workspace:*",
+    "@_all_docs/types": "workspace:*",
+    "@_all_docs/queue": "workspace:*",
+    "@_all_docs/storage": "workspace:*"
   },
   "scripts": {
     "build": "unbuild",
@@ -32,7 +29,6 @@
     "build:fastly": "unbuild --preset fastly",
     "start": "node node.js",
     "start:dev": "node --watch node.js",
-    "test:node": "node test-node.js",
     "docker:build": "docker build -t all-docs-worker .",
     "docker:run": "docker run -p 8080:8080 -e RUNTIME=cloudrun all-docs-worker",
     "docker:test": "docker run -p 8080:8080 -e RUNTIME=cloudrun -d all-docs-worker && sleep 2 && curl http://localhost:8080/health"

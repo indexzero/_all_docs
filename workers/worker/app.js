@@ -1,38 +1,7 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-
-// Processor imports - to be implemented in Phase 6
-// For now, these are placeholder functions
-const processPartition = async (workItem, env) => {
-  console.log('Processing partition:', workItem);
-  return {
-    workItemId: workItem.id,
-    success: true,
-    data: { message: 'Partition processing not yet implemented' },
-    duration: 0
-  };
-};
-
-const processPackument = async (workItem, env) => {
-  console.log('Processing packument:', workItem);
-  return {
-    workItemId: workItem.id,
-    success: true,
-    data: { message: 'Packument processing not yet implemented' },
-    duration: 0
-  };
-};
-
-const processPartitionSet = async (workItem, env) => {
-  console.log('Processing partition set:', workItem);
-  return {
-    workItemId: workItem.id,
-    success: true,
-    data: { message: 'Partition set processing not yet implemented' },
-    duration: 0
-  };
-};
+import { processPartition, processPackument, processPartitionSet } from './processors/index.js';
 
 const app = new Hono();
 

@@ -1,0 +1,19 @@
+{
+  "name": "@_all_docs/storage",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./drivers/node": "./drivers/node.js",
+    "./drivers/cloudflare": "./drivers/cloudflare.js",
+    "./drivers/fastly": "./drivers/fastly.js",
+    "./drivers/gcs": "./drivers/gcs.js"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.0.0",
+    "cacache": "^18.0.0"
+  },
+  "peerDependencies": {
+    "@_all_docs/types": "workspace:*"
+  }
+}
