@@ -132,6 +132,7 @@ We need a way to encapsulate the "work" done in commands like `@cli/cli/src/cmd/
 - Node.js Processes (`local` workers)
 - CloudFlare Workers and CloudFlare Workers for Platforms (`cloudflare` workers)
 - Fastly Compute@Edge Workers (`fastly` workers)
+- Google Cloud Run (`cloudrun` workers)
 
 The operations that a `worker` may undertake are not ANYTHING. It is specific to working with `npm` data:
 
@@ -264,7 +265,7 @@ export * from './types.js';
  * @property {Dictionary} [CACHE_DICT] - Fastly edge dictionary
  * @property {string} [CACHE_DIR] - Node.js cache directory
  * @property {string} NPM_ORIGIN - npm registry origin
- * @property {'node' | 'cloudflare' | 'fastly'} RUNTIME
+ * @property {'node' | 'cloudflare' | 'fastly' | 'cloudrun'} RUNTIME
  */
 
 /**
@@ -311,7 +312,7 @@ import { logger } from 'hono/logger';
  * @property {Dictionary} [CACHE_DICT] - Fastly edge dictionary
  * @property {string} [CACHE_DIR] - Node.js cache directory
  * @property {string} NPM_ORIGIN - npm registry origin
- * @property {'node' | 'cloudflare' | 'fastly'} RUNTIME
+ * @property {'node' | 'cloudflare' | 'fastly' | 'cloudrun'} RUNTIME
  */
 
 /**
@@ -545,6 +546,53 @@ export class CloudflareStorageAdapter {
   }
 }
 
+// workers/worker/storage/gcs.js
+import { Storage } from '@google-cloud/storage';
+
+export class GCSStorageAdapter {
+  constructor(bucketName) {
+    this.storage = new Storage();
+    this.bucket = this.storage.bucket(bucketName);
+  }
+
+  async get(key) {
+    const file = this.bucket.file(`${key}.json`);
+    const [exists] = await file.exists();
+    if (!exists) throw new Error(`Key not found: ${key}`);
+    
+    const [content] = await file.download();
+    return JSON.parse(content.toString());
+  }
+
+  async put(key, value) {
+    const file = this.bucket.file(`${key}.json`);
+    await file.save(JSON.stringify(value), {
+      metadata: {
+        contentType: 'application/json',
+      },
+    });
+  }
+
+  async has(key) {
+    const file = this.bucket.file(`${key}.json`);
+    const [exists] = await file.exists();
+    return exists;
+  }
+
+  async delete(key) {
+    const file = this.bucket.file(`${key}.json`);
+    await file.delete();
+  }
+
+  async *list(prefix) {
+    const [files] = await this.bucket.getFiles({ prefix });
+    for (const file of files) {
+      // Remove .json extension
+      yield file.name.replace(/\.json$/, '');
+    }
+  }
+}
+
 // workers/worker/storage/factory.js
 export function createStorageAdapter(env) {
   switch (env.RUNTIME) {
@@ -554,6 +602,12 @@ export function createStorageAdapter(env) {
       return new CloudflareStorageAdapter(env.CACHE_KV);
     case 'fastly':
       return new FastlyStorageAdapter(env.CACHE_DICT);
+    case 'cloudrun':
+      // Cloud Run can use GCS or local filesystem
+      if (env.CACHE_BUCKET) {
+        return new GCSStorageAdapter(env.CACHE_BUCKET);
+      }
+      return new NodeStorageAdapter(env.CACHE_DIR || '/tmp/cache');
     default:
       throw new Error(`Unsupported runtime: ${env.RUNTIME}`);
   }
@@ -897,7 +951,10 @@ export default defineBuildConfig({
  * Runtime detection and environment setup
  */
 export function detectRuntime() {
-  if (typeof globalThis.Deno !== 'undefined') {
+  // Check for explicit runtime environment variable (for Cloud Run)
+  if (process.env.RUNTIME === 'cloudrun') {
+    return 'cloudrun';
+  } else if (typeof globalThis.Deno !== 'undefined') {
     return 'deno';
   } else if (typeof globalThis.Bun !== 'undefined') {
     return 'bun';
@@ -928,6 +985,13 @@ export function getEnvConfig() {
         RUNTIME: 'fastly',
         CACHE_DICT: globalThis.CACHE_DICT,
         NPM_ORIGIN: globalThis.NPM_ORIGIN || 'https://replicate.npmjs.com',
+      };
+    case 'cloudrun':
+      return {
+        RUNTIME: 'cloudrun',
+        CACHE_BUCKET: process.env.CACHE_BUCKET,
+        CACHE_DIR: process.env.CACHE_DIR || '/tmp/cache',
+        NPM_ORIGIN: process.env.NPM_ORIGIN || 'https://replicate.npmjs.com',
       };
     default:
       return {
@@ -1127,7 +1191,94 @@ name = "WORK_QUEUE"
 class_name = "WorkQueue"
 ```
 
-#### 7.3 Docker Compose for Local Development
+#### 7.3 Google Cloud Run Deployment
+
+Google Cloud Run uses containerized applications, so we'll use the Node.js runtime packaged in a Docker container.
+
+##### 7.3.1 Dockerfile for Cloud Run
+
+```dockerfile
+# workers/worker/Dockerfile
+FROM node:20-alpine AS base
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package.json pnpm-lock.yaml ./
+
+# Install production dependencies
+RUN pnpm install --prod --frozen-lockfile
+
+# Copy application code
+COPY . .
+
+# Set environment for Cloud Run
+ENV RUNTIME=cloudrun
+ENV NODE_ENV=production
+
+# Cloud Run uses PORT environment variable
+EXPOSE 8080
+
+# Start the Node.js worker
+CMD ["node", "node.js"]
+```
+
+##### 7.3.2 Cloud Run Service Configuration
+
+```yaml
+# workers/worker/service.yaml
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: all-docs-worker
+  annotations:
+    run.googleapis.com/execution-environment: gen2
+spec:
+  template:
+    metadata:
+      annotations:
+        # Maximum number of requests per container instance
+        run.googleapis.com/container-concurrency: "100"
+        # CPU allocation
+        run.googleapis.com/cpu: "2"
+        # Memory allocation
+        run.googleapis.com/memory: "2Gi"
+        # Timeout
+        run.googleapis.com/timeout: "300s"
+    spec:
+      containers:
+      - image: gcr.io/YOUR_PROJECT_ID/all-docs-worker
+        env:
+        - name: NPM_ORIGIN
+          value: "https://replicate.npmjs.com"
+        - name: CACHE_BUCKET
+          value: "your-gcs-bucket"
+        resources:
+          limits:
+            cpu: "2"
+            memory: "2Gi"
+```
+
+##### 7.3.3 Deployment Commands
+
+```bash
+# Build and push container
+gcloud builds submit --tag gcr.io/YOUR_PROJECT_ID/all-docs-worker
+
+# Deploy to Cloud Run
+gcloud run deploy all-docs-worker \
+  --image gcr.io/YOUR_PROJECT_ID/all-docs-worker \
+  --platform managed \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --set-env-vars NPM_ORIGIN=https://replicate.npmjs.com
+```
+
+#### 7.4 Docker Compose for Local Development
 
 ```yaml
 version: '3.8'
@@ -1143,6 +1294,7 @@ services:
       - WORKER_ID=worker-1
       - REDIS_HOST=redis
       - PORT=3001
+      - RUNTIME=cloudrun
     ports:
       - "3001:3001"
   
@@ -1152,6 +1304,7 @@ services:
       - WORKER_ID=worker-2
       - REDIS_HOST=redis
       - PORT=3002
+      - RUNTIME=cloudrun
     ports:
       - "3002:3002"
 ```
@@ -1172,6 +1325,8 @@ services:
    - Configure unenv build process
    - Test Cloudflare Workers deployment
    - Implement Durable Objects for coordination
+   - Set up Google Cloud Run deployment
+   - Configure GCS storage adapter
 
 4. **Week 7-8: Production Readiness**
    - Add comprehensive error handling
@@ -1185,3 +1340,4 @@ services:
 3. **Progressive Enhancement**: Start with Node.js, add edge runtimes incrementally
 4. **No Build Step for Development**: Use native ES modules, build only for edge deployment
 5. **Flexible Queue Strategy**: Different queue implementations for different deployment scenarios
+6. **Container Support**: Google Cloud Run provides a middle ground between edge and traditional deployment

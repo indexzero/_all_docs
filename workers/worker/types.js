@@ -4,7 +4,7 @@
  * @property {Dictionary} [CACHE_DICT] - Fastly edge dictionary
  * @property {string} [CACHE_DIR] - Node.js cache directory
  * @property {string} NPM_ORIGIN - npm registry origin
- * @property {'node' | 'cloudflare' | 'fastly'} RUNTIME
+ * @property {'node' | 'cloudflare' | 'fastly' | 'cloudrun'} RUNTIME
  */
 
 /**
