@@ -1,2 +1,3 @@
-// Processor functions will be implemented in Phase 6
-export {};
+export { processPartition } from './partition.js';
+export { processPackument } from './packument.js';
+export { processPartitionSet } from './partition-set.js';
