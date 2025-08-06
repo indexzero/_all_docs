@@ -1,0 +1,34 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: all-docs-worker
+  annotations:
+    run.googleapis.com/execution-environment: gen2
+spec:
+  template:
+    metadata:
+      annotations:
+        # Maximum number of requests per container instance
+        run.googleapis.com/container-concurrency: "100"
+        # CPU allocation
+        run.googleapis.com/cpu: "2"
+        # Memory allocation
+        run.googleapis.com/memory: "2Gi"
+        # Timeout
+        run.googleapis.com/timeout: "300s"
+    spec:
+      containers:
+      - image: gcr.io/YOUR_PROJECT_ID/all-docs-worker
+        env:
+        - name: NPM_ORIGIN
+          value: "https://replicate.npmjs.com"
+        - name: RUNTIME
+          value: "cloudrun"
+        - name: CACHE_BUCKET
+          value: "your-gcs-bucket"
+        resources:
+          limits:
+            cpu: "2"
+            memory: "2Gi"
+        ports:
+        - containerPort: 8080
