@@ -1,80 +1,44 @@
-/**
- *
- * @attribution portions of this file are derived from vltpkg released
- * by `vlt technology, Inc.`. They are cited with @url below and reused
- * in accordance with the BSD-2-Clause-Patent license that project is
- * licensed under.
- *
- * @url https://github.com/vltpkg/vltpkg/blob/63f8a60/LICENSE
- * @url https://github.com/vltpkg/vltpkg/blob/63f8a60/src/registry-client/src/index.ts#L395-L548
- */
-
-import { Buffer } from 'node:buffer';
 import { resolve } from 'node:path';
 import debuglog from 'debug';
 import pMap from 'p-map';
-import { RegistryClient, CacheEntry } from '@vltpkg/registry-client';
-import { XDG } from '@vltpkg/xdg';
-import { Cache } from '@vltpkg/cache';
-import { register as cacheUnzipRegister } from '@vltpkg/cache-unzip';
-// Here. Be. Dragons. 🐲
-import unstable from './unstable.js';
+import { BaseHTTPClient, createDispatcher, Cache, CacheEntry, createPartitionKey } from '@_all_docs/cache';
 import { Partition } from './index.js';
 
 const debug = debuglog('_all_docs:partition:client');
 
-const { setCacheHeaders } = await unstable('set-cache-headers.js');
-const { addHeader } = await unstable('add-header.js');
-const { register } = await unstable('cache-revalidate.js');
-
-// Remark (0): these probably don't belong here, but < 1.0.0 so <shrug>
-const userAgent = '_all_docs/0.1.0';
-const agentOptions = {
-  bodyTimeout: 600_000,
-  headersTimeout: 600_000,
-  keepAliveMaxTimeout: 1_200_000,
-  keepAliveTimeout: 600_000,
-  keepAliveTimeoutThreshold: 30_000,
-  connect: {
-    timeout: 600_000,
-    keepAlive: true,
-    keepAliveInitialDelay: 30_000,
-    sessionTimeout: 600
-  },
-  connections: 256,
-  pipelining: 10
-};
-
-const xdg = new XDG('_all_docs');
-
-export class PartitionClient extends RegistryClient {
+/**
+ * Client for fetching CouchDB _all_docs partitions
+ * Uses fetch API and web standards for edge compatibility
+ */
+export class PartitionClient extends BaseHTTPClient {
   constructor(options = {}) {
-    // Override the cache to be a location that we wish it to be
-    options.cache ??= xdg.cache();
-    const { cache } = options;
-
-    super(options);
-    const path = resolve(cache, 'partitions');
-    this.cache = new Cache({
-      path,
-      onDiskWrite(_path, key, data) {
-        if (CacheEntry.isGzipEntry(data)) {
-          cacheUnzipRegister(path, key);
-        }
-      }
+    const { origin = 'https://replicate.npmjs.com', env } = options;
+    
+    // Initialize base client with undici-style options
+    super(origin, {
+      requestTimeout: 600_000,
+      traceHeader: 'x-all-docs-trace',
+      userAgent: '_all_docs/0.1.0'
     });
-
-    // Grab our own options out of it
-    this.origin = options.origin;
+    
+    // Set up cache
+    const cachePath = options.cache || (env?.CACHE_DIR ? resolve(env.CACHE_DIR, 'partitions') : './cache/partitions');
+    this.cache = new Cache({ 
+      path: cachePath,
+      env: options.env 
+    });
+    
+    // Initialize dispatcher for connection pooling
+    this.initDispatcher(options.env);
+    
+    // Options
+    this.env = options.env;
     this.dryRun = options.dryRun;
     this.limit = options.limit || 10;
+  }
 
-    // Strip methods that we don't need
-    delete this.scroll;
-    delete this.seek;
-    delete this.logout;
-    delete this.login;
-    delete this.webAuthOpener;
+  async initDispatcher(env) {
+    this.dispatcher = await createDispatcher(env);
   }
 
   async requestAll(partitions, options = {}) {
@@ -97,106 +61,113 @@ export class PartitionClient extends RegistryClient {
     return entries;
   }
 
+  /**
+   * Request a partition from CouchDB _all_docs endpoint
+   * @param {Object} partition - Partition specification
+   * @param {string} partition.startKey - Start key for the partition
+   * @param {string} partition.endKey - End key for the partition
+   * @param {Object} options - Request options
+   * @returns {Promise<CacheEntry>} Cache entry with partition data
+   */
   async request({ startKey, endKey }, options = {}) {
+    // Build URL with query parameters
     const url = new URL('_all_docs', this.origin);
     if (startKey) {
       url.searchParams.set('startkey', `"${startKey}"`);
     }
-
     if (endKey) {
       url.searchParams.set('endkey', `"${endKey}"`);
     }
-
-    // Always get as much as we can for each partition
-    // TODO (0): when we receive 10000 rows, we should
-    // surface a warning because the partition is too
-    // large to be served
-    url.searchParams.set('limit', 10_000);
-
-    options.headers = {
-      ...options.headers,
-      'npm-replication-opt-in': 'true'
-    };
+    url.searchParams.set('limit', '10000');
 
     const {
-      integrity,
       signal,
-      staleWhileRevalidate = true
+      staleWhileRevalidate = true,
+      cache = true
     } = options;
 
-    const { cache = true } = options;
+    // Check for abort
     signal?.throwIfAborted();
 
-    // First, try to get from the cache before making any request.
-    const key = Partition.cacheKey(startKey, endKey, this.origin);
-    const buffer = cache
-      ? await this.cache.fetch(key, { context: { integrity } })
-      : undefined;
-
-    const entry = buffer ? CacheEntry.decode(buffer) : undefined;
-    if (entry?.valid) {
-      entry.hit = true;
-      return entry;
-    }
-
-    if (staleWhileRevalidate && entry?.staleWhileRevalidate) {
-      // Revalidate while returning the stale entry
-      register(this.cache.path(), true, url);
-      return entry;
-    }
-
-    // Either no cache entry, or need to revalidate before use.
-    setCacheHeaders(options, entry);
-    Object.assign(options, {
-      path: url.pathname.replace(/\/+$/, '') + url.search,
-      ...agentOptions
-    });
-
-    options.origin = url.origin;
-    options.headers = addHeader(addHeader(options.headers, 'accept-encoding', 'gzip;q=1.0, identity;q=0.5'), 'user-agent', userAgent);
-    options.method = 'GET';
-
-    console.log(`${this.origin}/_all_docs${url.search}`);
-    const result = await this.#handleResponse(url, options, await this.agent.request(options));
-
-    const { refresh = false } = options;
-    if (cache || refresh) {
-      this.cache.set(key, result.encode());
-    }
-
-    return result;
-  }
-
-  async #handleResponse(url, options, response) {
-    const h = [];
-    for (const [key, value] of Object.entries(response.headers)) {
-      /* c8 ignore start - theoretical */
-      if (Array.isArray(value)) {
-        h.push(Buffer.from(key), Buffer.from(value.join(', ')));
-        /* c8 ignore stop */
-      } else if (typeof value === 'string') {
-        h.push(Buffer.from(key), Buffer.from(value));
+    // Generate cache key
+    const cacheKey = createPartitionKey(startKey, endKey, this.origin);
+    
+    // Try cache first
+    if (cache) {
+      const cached = await this.cache.fetch(cacheKey);
+      if (cached) {
+        const entry = CacheEntry.decode(cached);
+        if (entry.valid) {
+          entry.hit = true;
+          return entry;
+        }
+        
+        // Set up conditional request headers
+        if (staleWhileRevalidate && entry.etag) {
+          this.setCacheHeaders(options, entry);
+        }
       }
     }
 
-    const { integrity, trustIntegrity } = options;
+    // Prepare request headers
+    const headers = new Headers(options.headers || {});
+    headers.set('npm-replication-opt-in', 'true');
+    headers.set('accept', 'application/json');
+    headers.set('accept-encoding', 'gzip, deflate, br');
 
-    console.log(`${this.origin}/_all_docs${url.search} ${response.statusCode}`);
-    const result = new CacheEntry(
-      /* c8 ignore next - should always have a status code */
-      response.statusCode || 200,
-      h,
-      {
-        integrity,
-        trustIntegrity,
-        'stale-while-revalidate-factor': this.staleWhileRevalidateFactor
+    console.log(`${url.href}`);
+    
+    try {
+      // Make the fetch request
+      const response = await super.request(url, {
+        ...options,
+        headers,
+        signal,
+        dispatcher: this.dispatcher
+      });
+      
+      // Handle 304 Not Modified
+      if (response.status === 304 && cache) {
+        const cached = await this.cache.fetch(cacheKey);
+        if (cached) {
+          const entry = CacheEntry.decode(cached);
+          entry.hit = true;
+          console.log(`${url.href} 304 Not Modified`);
+          return entry;
+        }
       }
-    );
 
-    response.body.on('data', chunk => result.addBody(chunk));
-    return await new Promise((resolve, reject) => {
-      response.body.on('error', reject);
-      response.body.on('end', () => resolve(result));
-    });
+      // Check for successful response
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      console.log(`${url.href} ${response.status}`);
+      
+      // Parse response body as JSON
+      const body = await response.json();
+      
+      // Create cache entry from response
+      const entry = new CacheEntry(response.status, response.headers, {
+        trustIntegrity: options.trustIntegrity
+      });
+      await entry.setBody(body);
+
+      // Cache the result
+      if (cache) {
+        await this.cache.set(cacheKey, entry.encode());
+      }
+
+      return entry;
+    } catch (error) {
+      // Enhance error message
+      if (error.name === 'AbortError') {
+        console.error(`Request aborted for partition ${startKey}-${endKey}`);
+      } else {
+        console.error(`Request failed for partition ${startKey}-${endKey}:`, error.message);
+      }
+      throw error;
+    }
   }
+
 }

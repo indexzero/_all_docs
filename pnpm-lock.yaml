@@ -105,12 +105,12 @@ importers:
 
   src/cache:
     dependencies:
-      '@vltpkg/cache':
+      '@_all_docs/storage':
+        specifier: workspace:*
+        version: link:../../workers/storage
+      undici:
         specifier: 'catalog:'
-        version: 0.0.0-9
-      '@vltpkg/registry-client':
-        specifier: 'catalog:'
-        version: 0.0.0-9
+        version: 7.12.0
 
   src/config:
     dependencies:

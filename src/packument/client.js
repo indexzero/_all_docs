@@ -1,53 +1,43 @@
-/**
- *
- * @attribution portions of this file are derived from vltpkg released
- * by `vlt technology, Inc.`. They are cited with @url below and reused
- * in accordance with the BSD-2-Clause-Patent license that project is
- * licensed under.
- *
- * @url https://github.com/vltpkg/vltpkg/blob/63f8a60/LICENSE
- * @url https://github.com/vltpkg/vltpkg/blob/63f8a60/src/registry-client/src/index.ts#L395-L548
- */
-
 import { resolve } from 'node:path';
 import debuglog from 'debug';
 import pMap from 'p-map';
-import { RegistryClient, CacheEntry } from '@vltpkg/registry-client';
-import { XDG } from '@vltpkg/xdg';
-import { Cache } from '@vltpkg/cache';
-import { register as cacheUnzipRegister } from '@vltpkg/cache-unzip';
+import { BaseHTTPClient, createDispatcher, Cache, CacheEntry, createPackumentKey } from '@_all_docs/cache';
 
-const xdg = new XDG('_all_docs');
-const debug = debuglog('_all_docs:partition:client');
+const debug = debuglog('_all_docs:packument:client');
 
-export class PackumentClient extends RegistryClient {
+/**
+ * Client for fetching npm package documents (packuments)
+ * Uses fetch API and web standards for edge compatibility
+ */
+export class PackumentClient extends BaseHTTPClient {
   constructor(options = {}) {
-    // Override the cache to be a location that we wish it to be
-    options.cache ??= xdg.cache();
-    const { cache } = options;
-
-    super(options);
-    const path = resolve(cache, 'packuments');
-    this.cache = new Cache({
-      path,
-      onDiskWrite(_path, key, data) {
-        if (CacheEntry.isGzipEntry(data)) {
-          cacheUnzipRegister(path, key);
-        }
-      }
+    const { origin = 'https://registry.npmjs.org', env } = options;
+    
+    // Initialize base client with undici-style options
+    super(origin, {
+      requestTimeout: 600_000,
+      traceHeader: 'x-all-docs-trace',
+      userAgent: '_all_docs/0.1.0'
     });
-
-    // Grab our own options out of it
-    this.origin = options.origin;
+    
+    // Set up cache
+    const cachePath = options.cache || (env?.CACHE_DIR ? resolve(env.CACHE_DIR, 'packuments') : './cache/packuments');
+    this.cache = new Cache({ 
+      path: cachePath,
+      env: options.env 
+    });
+    
+    // Initialize dispatcher for connection pooling
+    this.initDispatcher(options.env);
+    
+    // Options
+    this.env = options.env;
     this.dryRun = options.dryRun;
     this.limit = options.limit || 10;
+  }
 
-    // Strip methods that we don't need
-    delete this.scroll;
-    delete this.seek;
-    delete this.logout;
-    delete this.login;
-    delete this.webAuthOpener;
+  async initDispatcher(env) {
+    this.dispatcher = await createDispatcher(env);
   }
 
   async requestAll(packages, options = {}) {
@@ -58,8 +48,7 @@ export class PackumentClient extends RegistryClient {
 
     let misses = 0;
     const entries = await pMap(packages, async name => {
-      const url = this.#url(name);
-      const entry = await this.request(url, options);
+      const entry = await this.request(name, options);
       if (!entry.hit && !dryRun) {
         misses += 1;
       }
@@ -71,7 +60,109 @@ export class PackumentClient extends RegistryClient {
     return entries;
   }
 
-  #url(name) {
-    return new URL(`/${name}`, this.origin);
+  /**
+   * Request a package document from the npm registry
+   * @param {string} packageName - Name of the package to fetch
+   * @param {Object} options - Request options
+   * @returns {Promise<CacheEntry|null>} Cache entry with packument data or null for 404
+   */
+  async request(packageName, options = {}) {
+    // Build URL
+    const url = new URL(`/${encodeURIComponent(packageName)}`, this.origin);
+    
+    const {
+      signal,
+      staleWhileRevalidate = true,
+      cache = true
+    } = options;
+
+    // Check for abort
+    signal?.throwIfAborted();
+
+    // Generate cache key
+    const cacheKey = createPackumentKey(packageName, this.origin);
+    
+    // Try cache first
+    if (cache) {
+      const cached = await this.cache.fetch(cacheKey);
+      if (cached) {
+        const entry = CacheEntry.decode(cached);
+        if (entry.valid) {
+          entry.hit = true;
+          return entry;
+        }
+        
+        // Set up conditional request headers
+        if (staleWhileRevalidate && entry.etag) {
+          this.setCacheHeaders(options, entry);
+        }
+      }
+    }
+
+    // Prepare request headers
+    const headers = new Headers(options.headers || {});
+    headers.set('accept', 'application/vnd.npm.install-v1+json');
+    headers.set('accept-encoding', 'gzip, deflate, br');
+
+    console.log(`${url.href}`);
+    
+    try {
+      // Make the fetch request
+      const response = await super.request(url, {
+        ...options,
+        headers,
+        signal,
+        dispatcher: this.dispatcher
+      });
+      
+      // Handle 304 Not Modified
+      if (response.status === 304 && cache) {
+        const cached = await this.cache.fetch(cacheKey);
+        if (cached) {
+          const entry = CacheEntry.decode(cached);
+          entry.hit = true;
+          console.log(`${url.href} 304 Not Modified`);
+          return entry;
+        }
+      }
+
+      // Handle 404 Not Found
+      if (response.status === 404) {
+        console.log(`${url.href} 404 Not Found`);
+        return null;
+      }
+
+      // Check for successful response
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      console.log(`${url.href} ${response.status}`);
+      
+      // Parse response body as JSON
+      const body = await response.json();
+      
+      // Create cache entry from response
+      const entry = new CacheEntry(response.status, response.headers, {
+        trustIntegrity: options.trustIntegrity
+      });
+      await entry.setBody(body);
+
+      // Cache the result
+      if (cache) {
+        await this.cache.set(cacheKey, entry.encode());
+      }
+
+      return entry;
+    } catch (error) {
+      // Enhance error message
+      if (error.name === 'AbortError') {
+        console.error(`Request aborted for package ${packageName}`);
+      } else {
+        console.error(`Request failed for package ${packageName}:`, error.message);
+      }
+      throw error;
+    }
   }
+
 }
