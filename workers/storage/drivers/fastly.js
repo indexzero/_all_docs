@@ -1,6 +1,8 @@
 export class FastlyStorageDriver {
   constructor(edgeDictionary) {
     this.dict = edgeDictionary;
+    this.supportsBatch = false;
+    this.supportsBloom = false;
   }
 
   async get(key) {
@@ -26,5 +28,30 @@ export class FastlyStorageDriver {
     // Fastly doesn't support listing keys, so this would need a workaround
     // such as maintaining an index in a separate key
     throw new Error('List operation not supported in Fastly edge dictionary');
+  }
+  
+  async getBatch(keys) {
+    // Implement basic batch support even though not optimal
+    const results = new Map();
+    await Promise.all(
+      keys.map(async key => {
+        try {
+          const value = await this.get(key);
+          results.set(key, value);
+        } catch (error) {
+          // Skip missing keys
+          if (!error.message.includes('not found')) {
+            throw error;
+          }
+        }
+      })
+    );
+    return results;
+  }
+  
+  async putBatch(entries) {
+    await Promise.all(
+      entries.map(({ key, value }) => this.put(key, value))
+    );
   }
 }
