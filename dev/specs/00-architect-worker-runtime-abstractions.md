@@ -1540,6 +1540,7 @@ services:
 9. **Container Support**: Google Cloud Run provides a middle ground between edge and traditional deployment
 10. **Use cacache for Local Storage**: Leverage npm's battle-tested content-addressable cache library
 11. **Build Custom Registry Clients**: Build our own registry client from scratch for better control and optimization
+12. **Cross-Platform Cache Keys**: Use hex-encoded keys with type prefixes for universal storage compatibility
 
 ### Architectural Decision Records
 
@@ -1595,6 +1596,51 @@ Build custom registry client implementations from scratch, maintaining only the 
 - (+) Easier edge runtime support
 - (-) More code to maintain
 - (-) Need to implement caching logic ourselves
+
+#### ADR-003: Cross-Platform Cache Key Format
+
+**Status**: Accepted
+
+**Context**: 
+Cache keys must work across multiple storage backends with different constraints:
+- Filesystem (Node.js): Cannot use `/`, `\`, `:`, `*`, `?`, `"`, `<`, `>`, `|`
+- Cloudflare KV: Max 512 bytes, UTF-8 encoded
+- Fastly Dictionary: ASCII only, max 255 bytes
+- Google Cloud Storage: Prefers URL-safe characters
+
+Current implementation uses problematic formats:
+- Partition keys: `JSON.stringify([url, startKey, endKey])` contains quotes, brackets, colons
+- Packument keys: Raw URLs like `https://registry.npmjs.com/@babel/core` contain colons, slashes
+
+**Decision**: 
+Implement standardized cache key format using hex encoding:
+- Partition: `partition:{origin}:{hex(startKey)}:{hex(endKey)}`
+- Packument: `packument:{origin}:{hex(packageName)}`
+
+**Rationale**:
+- **Universal Compatibility**: Hex encoding ensures ASCII-only keys work everywhere
+- **Type Namespacing**: Prefixes prevent collisions between different object types
+- **Origin Isolation**: Including origin allows per-registry cache management
+- **Predictable Format**: Fixed structure simplifies debugging and tooling
+- **Prefix Scanning**: Enables efficient listing operations where supported
+
+**Implementation Example**:
+```javascript
+// Partition key for startKey="@" endKey="@a"
+"partition:npm:40:4061"
+
+// Packument key for "@babel/core"
+"packument:npm:40626162656c2f636f7265"
+```
+
+**Consequences**:
+- (+) Works reliably across all storage backends
+- (+) No special character handling needed
+- (+) Enables efficient prefix operations
+- (+) Clear debugging - can identify key type at a glance
+- (-) Hex encoding doubles key length
+- (-) Requires migration from existing cache format
+- (-) Less human-readable than raw strings
 
 ### Phase 2.5: Custom CacheEntry Implementation
 
