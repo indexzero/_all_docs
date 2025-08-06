@@ -32,6 +32,9 @@
     "build:fastly": "unbuild --preset fastly",
     "start": "node node.js",
     "start:dev": "node --watch node.js",
-    "test:node": "node test-node.js"
+    "test:node": "node test-node.js",
+    "docker:build": "docker build -t all-docs-worker .",
+    "docker:run": "docker run -p 8080:8080 -e RUNTIME=cloudrun all-docs-worker",
+    "docker:test": "docker run -p 8080:8080 -e RUNTIME=cloudrun -d all-docs-worker && sleep 2 && curl http://localhost:8080/health"
   }
 }
