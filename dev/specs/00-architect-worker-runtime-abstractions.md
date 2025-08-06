@@ -32,6 +32,7 @@ where `pivots.js` exports data shaped like:
 ]
 ```
 
+
 **Copy all packuments in from current cache for items in `./npm-high-impact.json` to `./out`**
 ```sh
 scripts/bins/_all_docs packument export ./npm-high-impact.json ./out 
@@ -237,7 +238,8 @@ _all_docs/
     "./drivers/gcs": "./drivers/gcs.js"
   },
   "dependencies": {
-    "@google-cloud/storage": "^7.0.0"
+    "@google-cloud/storage": "^7.0.0",
+    "cacache": "^18.0.0"
   },
   "peerDependencies": {
     "@_all_docs/types": "workspace:*"
@@ -623,49 +625,54 @@ export function createStorageDriver(env) {
 }
 ```
 
-#### 3.2 Node.js Storage Driver
+#### 3.2 Node.js Storage Driver with cacache
 
 ```javascript
 // workers/storage/drivers/node.js
-import { readFile, writeFile, access, unlink, readdir } from 'fs/promises';
-import { join } from 'path';
+import cacache from 'cacache';
 
+/**
+ * Storage driver using npm's cacache for robust local caching
+ * Provides content-addressable storage with built-in integrity checking
+ */
 export class NodeStorageDriver {
   constructor(basePath) {
-    this.basePath = basePath;
+    this.cachePath = basePath;
   }
 
   async get(key) {
-    const path = join(this.basePath, `${key}.json`);
-    const content = await readFile(path, 'utf8');
-    return JSON.parse(content);
-  }
-
-  async put(key, value) {
-    const path = join(this.basePath, `${key}.json`);
-    await writeFile(path, JSON.stringify(value));
-  }
-
-  async has(key) {
-    const path = join(this.basePath, `${key}.json`);
     try {
-      await access(path);
-      return true;
-    } catch {
-      return false;
+      const { data } = await cacache.get(this.cachePath, key);
+      return JSON.parse(data.toString('utf8'));
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        throw new Error(`Key not found: ${key}`);
+      }
+      throw error;
     }
   }
 
+  async put(key, value, options = {}) {
+    const data = JSON.stringify(value);
+    const info = await cacache.put(this.cachePath, key, data);
+    // cacache returns integrity hash which could be useful for validation
+    return info;
+  }
+
+  async has(key) {
+    const info = await cacache.get.info(this.cachePath, key);
+    return info !== null;
+  }
+
   async delete(key) {
-    const path = join(this.basePath, `${key}.json`);
-    await unlink(path);
+    await cacache.rm.entry(this.cachePath, key);
   }
 
   async *list(prefix) {
-    const files = await readdir(this.basePath);
-    for (const file of files) {
-      if (file.startsWith(prefix) && file.endsWith('.json')) {
-        yield file.slice(0, -5); // Remove .json extension
+    const stream = cacache.ls.stream(this.cachePath);
+    for await (const entry of stream) {
+      if (entry.key.startsWith(prefix)) {
+        yield entry.key;
       }
     }
   }
@@ -917,7 +924,7 @@ Modify the existing clients in `src/partition` and `src/packument` to extend the
 // src/partition/client.js
 import { BaseHTTPClient, createAgent } from '@_all_docs/cache/http';
 import { Cache } from '@_all_docs/cache';
-import { CacheEntry } from '@vltpkg/registry-client';
+import { CacheEntry } from '@_all_docs/cache/entry';
 import { Partition } from './index.js';
 
 export class PartitionClient extends BaseHTTPClient {
@@ -1002,7 +1009,7 @@ export class PartitionClient extends BaseHTTPClient {
 // src/packument/client.js
 import { BaseHTTPClient, createAgent } from '@_all_docs/cache/http';
 import { Cache } from '@_all_docs/cache';
-import { CacheEntry } from '@vltpkg/registry-client';
+import { CacheEntry } from '@_all_docs/cache/entry';
 
 export class PackumentClient extends BaseHTTPClient {
   constructor(options = {}) {
@@ -1107,7 +1114,7 @@ export default defineBuildConfig({
     // Keep these external for Node.js builds
     'undici',
     'bullmq',
-    '@vltpkg/registry-client',
+    'cacache',
   ],
   hooks: {
     'rollup:options'(ctx, options) {
@@ -1531,3 +1538,159 @@ services:
 7. **Maintain Compatibility**: Abstractions preserve existing code structure and APIs
 8. **Progressive Enhancement**: Start with Node.js, add edge runtimes incrementally
 9. **Container Support**: Google Cloud Run provides a middle ground between edge and traditional deployment
+10. **Use cacache for Local Storage**: Leverage npm's battle-tested content-addressable cache library
+11. **Build Custom Registry Clients**: Build our own registry client from scratch for better control and optimization
+
+### Architectural Decision Records
+
+#### ADR-001: Use cacache for Node.js Storage Driver
+
+**Status**: Accepted
+
+**Context**: 
+The Node.js storage driver needs a reliable, performant way to cache registry data locally. We evaluated multiple options including building our own file-based cache, using a simple key-value store, or leveraging existing npm infrastructure.
+
+**Decision**: 
+Use npm's `cacache` library for the Node.js storage driver implementation.
+
+**Rationale**:
+- **Battle-tested**: cacache powers npm's local cache and handles millions of installations daily
+- **Content-addressable**: Built-in integrity checking ensures data consistency
+- **Performance**: Optimized for high-throughput scenarios with proper file locking
+- **Features**: Includes garbage collection, streaming support, and metadata handling
+- **Compatibility**: Designed specifically for caching npm registry data
+
+**Consequences**:
+- (+) Robust, production-ready caching solution
+- (+) Automatic integrity verification
+- (+) Well-documented with npm team support
+- (-) Additional dependency (18KB gzipped)
+- (-) Slight learning curve for content-addressable semantics
+
+#### ADR-002: Build Custom Registry Clients
+
+**Status**: Accepted
+
+**Context**: 
+Initially considered using `@vltpkg/registry-client` for registry interactions. However, after evaluation, we determined that building custom registry clients would better serve our specific needs.
+
+**Decision**: 
+Build custom registry client implementations from scratch, maintaining only the CacheEntry interface for compatibility.
+
+**Rationale**:
+- **Control**: Full control over HTTP behavior, retry logic, and caching strategies
+- **Optimization**: Can optimize specifically for our partitioning use case
+- **Simplicity**: Avoid unnecessary abstractions not relevant to our use case
+- **Edge Compatibility**: Easier to ensure cross-runtime compatibility
+- **Reduced Dependencies**: Fewer external dependencies to manage
+
+**Implementation Plan**:
+1. Create `@_all_docs/cache/entry` module with our own CacheEntry implementation
+2. Base registry clients on our cross-runtime HTTP abstraction
+3. Implement only the features we actually need (conditional requests, ETags, etc.)
+
+**Consequences**:
+- (+) Complete control over implementation
+- (+) Can optimize for our specific use cases
+- (+) Easier edge runtime support
+- (-) More code to maintain
+- (-) Need to implement caching logic ourselves
+
+### Phase 2.5: Custom CacheEntry Implementation
+
+Create our own CacheEntry implementation to replace the dependency on `@vltpkg/registry-client`.
+
+#### 2.5.1 CacheEntry Implementation
+
+```javascript
+// src/cache/entry.js
+/**
+ * CacheEntry compatible with our caching needs
+ * Handles HTTP cache semantics and response encoding/decoding
+ */
+export class CacheEntry {
+  constructor(statusCode, headers, options = {}) {
+    this.statusCode = statusCode;
+    this.headers = this.normalizeHeaders(headers);
+    this.options = options;
+    this.body = null;
+    this.integrity = null;
+    this.hit = false;
+  }
+
+  normalizeHeaders(headers) {
+    const normalized = {};
+    if (headers) {
+      Object.entries(headers).forEach(([key, value]) => {
+        normalized[key.toLowerCase()] = value;
+      });
+    }
+    return normalized;
+  }
+
+  setBody(body) {
+    this.body = body;
+    if (this.options.calculateIntegrity) {
+      // Calculate integrity hash if needed
+      const crypto = globalThis.crypto || require('crypto');
+      const hash = crypto.createHash('sha256');
+      hash.update(JSON.stringify(body));
+      this.integrity = `sha256-${hash.digest('base64')}`;
+    }
+  }
+
+  json() {
+    return this.body;
+  }
+
+  get valid() {
+    // Check cache validity based on cache-control headers
+    const cacheControl = this.headers['cache-control'];
+    const age = parseInt(this.headers['age'] || '0', 10);
+    const maxAge = this.extractMaxAge(cacheControl);
+    
+    if (maxAge && age < maxAge) {
+      return true;
+    }
+    
+    // Check if we have an etag for conditional requests
+    return !!this.etag;
+  }
+
+  get etag() {
+    return this.headers['etag'];
+  }
+
+  extractMaxAge(cacheControl) {
+    if (!cacheControl) return null;
+    const match = cacheControl.match(/max-age=(\d+)/);
+    return match ? parseInt(match[1], 10) : null;
+  }
+
+  encode() {
+    return {
+      statusCode: this.statusCode,
+      headers: this.headers,
+      body: this.body,
+      integrity: this.integrity,
+      timestamp: Date.now()
+    };
+  }
+
+  static decode(data) {
+    const entry = new CacheEntry(data.statusCode, data.headers);
+    entry.body = data.body;
+    entry.integrity = data.integrity;
+    return entry;
+  }
+}
+```
+
+#### 2.5.2 Update Cache Package Exports
+
+```javascript
+// src/cache/index.js
+export { Cache } from './cache.js';
+export { BaseHTTPClient, createAgent } from './http.js';
+export { CacheEntry } from './entry.js';
+```
