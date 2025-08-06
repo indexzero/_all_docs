@@ -32,7 +32,6 @@ where `pivots.js` exports data shaped like:
 ]
 ```
 
-
 **Copy all packuments in from current cache for items in `./npm-high-impact.json` to `./out`**
 ```sh
 scripts/bins/_all_docs packument export ./npm-high-impact.json ./out 
@@ -347,6 +346,10 @@ packages:
  * @property {(key: string) => Promise<boolean>} has
  * @property {(key: string) => Promise<void>} delete
  * @property {(prefix: string) => AsyncIterator<string>} list
+ * @property {(keys: string[]) => Promise<Map<string, any>>} getBatch
+ * @property {(entries: Array<{key: string, value: any}>) => Promise<void>} putBatch
+ * @property {boolean} supportsBatch
+ * @property {boolean} supportsBloom
  */
 
 export const WorkItemTypes = {
@@ -461,6 +464,8 @@ export class BaseHTTPClient {
     this.origin = origin;
     this.cache = options.cache;
     this.agent = options.agent;
+    this.requestTimeout = options.requestTimeout || 30000;
+    this.traceHeader = options.traceHeader || 'x-trace-id';
   }
 
   /**
@@ -471,33 +476,57 @@ export class BaseHTTPClient {
   async request(path, options = {}) {
     const url = new URL(path, this.origin);
     
-    // For Node.js with undici available
-    if (this.agent && this.agent.request) {
-      return this.agent.request({
-        origin: url.origin,
-        path: url.pathname + url.search,
-        ...options
-      });
+    // Create AbortController for timeouts and circuit breaking
+    const controller = options.signal ? new AbortController() : new AbortController();
+    if (options.signal) {
+      options.signal.addEventListener('abort', () => controller.abort());
     }
     
-    // For edge runtimes, use native fetch
-    const fetchOptions = {
-      method: options.method || 'GET',
-      headers: this.normalizeHeaders(options.headers),
-      signal: options.signal,
-    };
+    // Set timeout
+    const timeoutId = setTimeout(() => controller.abort(), options.timeout || this.requestTimeout);
+    
+    try {
+      // Add minimal tracing headers
+      if (!options.headers) options.headers = {};
+      if (!options.headers[this.traceHeader]) {
+        options.headers[this.traceHeader] = this.generateTraceId();
+      }
+      
+      // For Node.js with undici available
+      if (this.agent && this.agent.request) {
+        return await this.agent.request({
+          origin: url.origin,
+          path: url.pathname + url.search,
+          ...options,
+          signal: controller.signal
+        });
+      }
+      
+      // For edge runtimes, use native fetch
+      const fetchOptions = {
+        method: options.method || 'GET',
+        headers: this.normalizeHeaders(options.headers),
+        signal: controller.signal,
+      };
 
-    if (options.body) {
-      fetchOptions.body = options.body;
+      if (options.body) {
+        fetchOptions.body = options.body;
+      }
+
+      const response = await fetch(url.href, fetchOptions);
+      
+      // Add undici-compatible properties
+      response.statusCode = response.status;
+      response.headers = this.headersToObject(response.headers);
+      
+      return response;
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    const response = await fetch(url.href, fetchOptions);
-    
-    // Add undici-compatible properties
-    response.statusCode = response.status;
-    response.headers = this.headersToObject(response.headers);
-    
-    return response;
+  }
+  
+  generateTraceId() {
+    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
   normalizeHeaders(headers = {}) {
@@ -549,9 +578,60 @@ export class Cache {
   constructor(options = {}) {
     this.path = options.path;
     this.driver = options.driver || createStorageDriver(options.env);
+    this.bloomFilter = options.bloomFilter || null;
+    this.bloomSize = options.bloomSize || 10000;
+    this.bloomFalsePositiveRate = options.bloomFalsePositiveRate || 0.01;
+    this._initBloomFilter();
+  }
+  
+  _initBloomFilter() {
+    if (this.bloomFilter === null && this.driver.supportsBloom) {
+      // Simple bloom filter implementation
+      this.bloomFilter = {
+        bits: new Uint8Array(Math.ceil(this.bloomSize / 8)),
+        size: this.bloomSize,
+        hashCount: Math.ceil(-Math.log(this.bloomFalsePositiveRate) / Math.log(2)),
+        
+        add(key) {
+          for (let i = 0; i < this.hashCount; i++) {
+            const hash = this._hash(key, i) % this.size;
+            const byte = Math.floor(hash / 8);
+            const bit = hash % 8;
+            this.bits[byte] |= (1 << bit);
+          }
+        },
+        
+        has(key) {
+          for (let i = 0; i < this.hashCount; i++) {
+            const hash = this._hash(key, i) % this.size;
+            const byte = Math.floor(hash / 8);
+            const bit = hash % 8;
+            if (!(this.bits[byte] & (1 << bit))) {
+              return false;
+            }
+          }
+          return true;
+        },
+        
+        _hash(key, seed) {
+          // Simple hash function for bloom filter
+          let hash = seed;
+          for (let i = 0; i < key.length; i++) {
+            hash = ((hash << 5) - hash) + key.charCodeAt(i);
+            hash = hash & hash; // Convert to 32-bit integer
+          }
+          return Math.abs(hash);
+        }
+      };
+    }
   }
 
   async fetch(key, options = {}) {
+    // Check bloom filter first for non-existence
+    if (this.bloomFilter && !this.bloomFilter.has(key)) {
+      return null; // Definitely not in cache
+    }
+    
     try {
       const value = await this.driver.get(key);
       // Handle cache validation, ETags, etc.
@@ -565,10 +645,18 @@ export class Cache {
   }
 
   async set(key, value, options = {}) {
+    // Add to bloom filter
+    if (this.bloomFilter) {
+      this.bloomFilter.add(key);
+    }
     return this.driver.put(key, value, options);
   }
 
   async has(key) {
+    // Check bloom filter first
+    if (this.bloomFilter && !this.bloomFilter.has(key)) {
+      return false; // Definitely not in cache
+    }
     return this.driver.has(key);
   }
 
@@ -638,18 +726,40 @@ import cacache from 'cacache';
 export class NodeStorageDriver {
   constructor(basePath) {
     this.cachePath = basePath;
+    this.supportsBatch = true;
+    this.supportsBloom = true;
+    this.maxRetries = 3;
+    this.baseDelay = 100;
+  }
+
+  async _retry(operation, key) {
+    let lastError;
+    for (let attempt = 0; attempt < this.maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error;
+        if (error.code === 'ENOENT' || attempt === this.maxRetries - 1) {
+          throw error;
+        }
+        // Exponential backoff with jitter
+        const delay = this.baseDelay * Math.pow(2, attempt) + Math.random() * 100;
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    throw lastError;
   }
 
   async get(key) {
-    try {
+    return this._retry(async () => {
       const { data } = await cacache.get(this.cachePath, key);
       return JSON.parse(data.toString('utf8'));
-    } catch (error) {
+    }, key).catch(error => {
       if (error.code === 'ENOENT') {
         throw new Error(`Key not found: ${key}`);
       }
       throw error;
-    }
+    });
   }
 
   async put(key, value, options = {}) {
@@ -676,12 +786,38 @@ export class NodeStorageDriver {
       }
     }
   }
+  
+  async getBatch(keys) {
+    const results = new Map();
+    await Promise.all(
+      keys.map(async key => {
+        try {
+          const value = await this.get(key);
+          results.set(key, value);
+        } catch (error) {
+          // Skip missing keys
+          if (!error.message.includes('not found')) {
+            throw error;
+          }
+        }
+      })
+    );
+    return results;
+  }
+  
+  async putBatch(entries) {
+    await Promise.all(
+      entries.map(({ key, value }) => this.put(key, value))
+    );
+  }
 }
 
 // workers/storage/drivers/cloudflare.js
 export class CloudflareStorageDriver {
   constructor(kvNamespace) {
     this.kv = kvNamespace;
+    this.supportsBatch = true;
+    this.supportsBloom = false;
   }
 
   async get(key) {
@@ -712,6 +848,29 @@ export class CloudflareStorageDriver {
       }
       cursor = result.cursor;
     } while (cursor);
+  }
+  
+  async getBatch(keys) {
+    const results = new Map();
+    // Cloudflare KV supports batch get natively
+    const values = await Promise.all(
+      keys.map(key => this.kv.get(key, 'json'))
+    );
+    
+    keys.forEach((key, index) => {
+      if (values[index] !== null) {
+        results.set(key, values[index]);
+      }
+    });
+    
+    return results;
+  }
+  
+  async putBatch(entries) {
+    // KV doesn't have native batch put, but we can parallelize
+    await Promise.all(
+      entries.map(({ key, value }) => this.put(key, value))
+    );
   }
 }
 
@@ -1613,9 +1772,9 @@ Current implementation uses problematic formats:
 - Packument keys: Raw URLs like `https://registry.npmjs.com/@babel/core` contain colons, slashes
 
 **Decision**: 
-Implement standardized cache key format using hex encoding:
-- Partition: `partition:{origin}:{hex(startKey)}:{hex(endKey)}`
-- Packument: `packument:{origin}:{hex(packageName)}`
+Implement versioned, standardized cache key format using hex encoding:
+- Partition: `v1:partition:{origin}:{hex(startKey)}:{hex(endKey)}`
+- Packument: `v1:packument:{origin}:{hex(packageName)}`
 
 **Rationale**:
 - **Universal Compatibility**: Hex encoding ensures ASCII-only keys work everywhere
@@ -1623,21 +1782,23 @@ Implement standardized cache key format using hex encoding:
 - **Origin Isolation**: Including origin allows per-registry cache management
 - **Predictable Format**: Fixed structure simplifies debugging and tooling
 - **Prefix Scanning**: Enables efficient listing operations where supported
+- **Version Migration**: v1 prefix allows future format changes without breaking existing caches
 
 **Implementation Example**:
 ```javascript
 // Partition key for startKey="@" endKey="@a"
-"partition:npm:40:4061"
+"v1:partition:npm:40:4061"
 
 // Packument key for "@babel/core"
-"packument:npm:40626162656c2f636f7265"
+"v1:packument:npm:40626162656c2f636f7265"
 ```
 
 **Consequences**:
 - (+) Works reliably across all storage backends
 - (+) No special character handling needed
 - (+) Enables efficient prefix operations
-- (+) Clear debugging - can identify key type at a glance
+- (+) Clear debugging - can identify key type and version at a glance
+- (+) Future-proof with version prefix
 - (-) Hex encoding doubles key length
 - (-) Requires migration from existing cache format
 - (-) Less human-readable than raw strings
@@ -1662,6 +1823,8 @@ export class CacheEntry {
     this.body = null;
     this.integrity = null;
     this.hit = false;
+    this.timestamp = Date.now();
+    this.version = 1;
   }
 
   normalizeHeaders(headers) {
@@ -1676,11 +1839,22 @@ export class CacheEntry {
 
   setBody(body) {
     this.body = body;
-    if (this.options.calculateIntegrity) {
-      // Calculate integrity hash if needed
-      const crypto = globalThis.crypto || require('crypto');
+    // Always calculate integrity for data verification
+    const data = JSON.stringify(body);
+    if (globalThis.crypto && globalThis.crypto.subtle) {
+      // Edge runtime
+      const encoder = new TextEncoder();
+      const dataBuffer = encoder.encode(data);
+      globalThis.crypto.subtle.digest('SHA-256', dataBuffer).then(hash => {
+        const hashArray = Array.from(new Uint8Array(hash));
+        const hashBase64 = btoa(String.fromCharCode(...hashArray));
+        this.integrity = `sha256-${hashBase64}`;
+      });
+    } else {
+      // Node.js
+      const crypto = require('crypto');
       const hash = crypto.createHash('sha256');
-      hash.update(JSON.stringify(body));
+      hash.update(data);
       this.integrity = `sha256-${hash.digest('base64')}`;
     }
   }
@@ -1719,7 +1893,8 @@ export class CacheEntry {
       headers: this.headers,
       body: this.body,
       integrity: this.integrity,
-      timestamp: Date.now()
+      timestamp: this.timestamp,
+      version: this.version
     };
   }
 
@@ -1727,7 +1902,36 @@ export class CacheEntry {
     const entry = new CacheEntry(data.statusCode, data.headers);
     entry.body = data.body;
     entry.integrity = data.integrity;
+    entry.timestamp = data.timestamp || Date.now();
+    entry.version = data.version || 1;
     return entry;
+  }
+  
+  verifyIntegrity() {
+    if (!this.integrity || !this.body) return false;
+    // Recalculate and compare
+    const data = JSON.stringify(this.body);
+    if (globalThis.crypto && globalThis.crypto.subtle) {
+      // Async verification for edge
+      return this.verifyIntegrityAsync(data);
+    } else {
+      // Sync verification for Node.js
+      const crypto = require('crypto');
+      const hash = crypto.createHash('sha256');
+      hash.update(data);
+      const calculated = `sha256-${hash.digest('base64')}`;
+      return calculated === this.integrity;
+    }
+  }
+  
+  async verifyIntegrityAsync(data) {
+    const encoder = new TextEncoder();
+    const dataBuffer = encoder.encode(data);
+    const hash = await globalThis.crypto.subtle.digest('SHA-256', dataBuffer);
+    const hashArray = Array.from(new Uint8Array(hash));
+    const hashBase64 = btoa(String.fromCharCode(...hashArray));
+    const calculated = `sha256-${hashBase64}`;
+    return calculated === this.integrity;
   }
 }
 ```
@@ -1739,4 +1943,267 @@ export class CacheEntry {
 export { Cache } from './cache.js';
 export { BaseHTTPClient, createAgent } from './http.js';
 export { CacheEntry } from './entry.js';
+export { createCacheKey, decodeCacheKey } from './cache-key.js';
+```
+
+### Phase 2.3: Cache Key Implementation
+
+Implement the versioned cache key format for cross-platform compatibility.
+
+```javascript
+// src/cache/cache-key.js
+/**
+ * Cache key utilities for cross-platform storage compatibility
+ * Uses versioned hex encoding to ensure keys work across all backends
+ */
+
+const CACHE_KEY_VERSION = 'v1';
+
+/**
+ * Create a cache key for a partition
+ * @param {string} startKey - Start key of the partition
+ * @param {string} endKey - End key of the partition
+ * @param {string} origin - Registry origin URL
+ * @returns {string} Versioned cache key
+ */
+export function createPartitionKey(startKey, endKey, origin = 'https://replicate.npmjs.com') {
+  const originKey = encodeOrigin(origin);
+  const startHex = encodeKeySegment(startKey);
+  const endHex = encodeKeySegment(endKey);
+  
+  return `${CACHE_KEY_VERSION}:partition:${originKey}:${startHex}:${endHex}`;
+}
+
+/**
+ * Create a cache key for a packument
+ * @param {string} packageName - npm package name
+ * @param {string} origin - Registry origin URL
+ * @returns {string} Versioned cache key
+ */
+export function createPackumentKey(packageName, origin = 'https://registry.npmjs.com') {
+  const originKey = encodeOrigin(origin);
+  const nameHex = encodeKeySegment(packageName);
+  
+  return `${CACHE_KEY_VERSION}:packument:${originKey}:${nameHex}`;
+}
+
+/**
+ * Encode origin URL to short key
+ * @param {string} origin - Full origin URL
+ * @returns {string} Short origin key
+ */
+function encodeOrigin(origin) {
+  // Use short aliases for common registries
+  if (origin === 'https://replicate.npmjs.com') return 'npm';
+  if (origin === 'https://registry.npmjs.org') return 'npm';
+  if (origin === 'https://registry.npmjs.com') return 'npm';
+  
+  // For custom registries, use first 8 chars of base64url
+  return Buffer.from(origin).toString('base64url').substring(0, 8);
+}
+
+/**
+ * Encode a key segment to hex
+ * @param {string} segment - Key segment to encode
+ * @returns {string} Hex encoded segment
+ */
+function encodeKeySegment(segment) {
+  if (!segment) return '';
+  return Buffer.from(segment).toString('hex');
+}
+
+/**
+ * Decode a cache key back to its components
+ * @param {string} cacheKey - The cache key to decode
+ * @returns {Object} Decoded components
+ */
+export function decodeCacheKey(cacheKey) {
+  const parts = cacheKey.split(':');
+  if (parts.length < 4) {
+    throw new Error(`Invalid cache key format: ${cacheKey}`);
+  }
+  
+  const [version, type, origin, ...segments] = parts;
+  
+  if (type === 'partition' && segments.length === 2) {
+    return {
+      version,
+      type,
+      origin: decodeOrigin(origin),
+      startKey: decodeKeySegment(segments[0]),
+      endKey: decodeKeySegment(segments[1])
+    };
+  } else if (type === 'packument' && segments.length === 1) {
+    return {
+      version,
+      type,
+      origin: decodeOrigin(origin),
+      packageName: decodeKeySegment(segments[0])
+    };
+  }
+  
+  throw new Error(`Unknown cache key type: ${type}`);
+}
+
+/**
+ * Decode origin from short key
+ * @param {string} originKey - Short origin key
+ * @returns {string} Full origin URL
+ */
+function decodeOrigin(originKey) {
+  if (originKey === 'npm') return 'https://registry.npmjs.com';
+  
+  // For custom registries, decode from base64url
+  // Note: This is lossy - we only stored first 8 chars
+  return `<custom:${originKey}>`;
+}
+
+/**
+ * Decode a hex segment back to string
+ * @param {string} hexSegment - Hex encoded segment
+ * @returns {string} Decoded string
+ */
+function decodeKeySegment(hexSegment) {
+  if (!hexSegment) return '';
+  return Buffer.from(hexSegment, 'hex').toString('utf8');
+}
+
+/**
+ * Factory function to create appropriate cache key
+ * @param {string} type - 'partition' or 'packument'
+ * @param {Object} params - Parameters for key creation
+ * @returns {string} Cache key
+ */
+export function createCacheKey(type, params) {
+  switch (type) {
+    case 'partition':
+      return createPartitionKey(params.startKey, params.endKey, params.origin);
+    case 'packument':
+      return createPackumentKey(params.packageName, params.origin);
+    default:
+      throw new Error(`Unknown cache key type: ${type}`);
+  }
+}
+```
+
+### Phase 2.6: Checkpoint System for Partition Sets
+
+Implement a checkpoint/manifest system to track partition processing progress and ensure completeness.
+
+```javascript
+// src/cache/checkpoint.js
+/**
+ * Checkpoint system for tracking partition set processing
+ * Provides atomic progress tracking and recovery
+ */
+export class PartitionCheckpoint {
+  constructor(cache, partitionSetId) {
+    this.cache = cache;
+    this.partitionSetId = partitionSetId;
+    this.checkpointKey = `v1:checkpoint:${partitionSetId}`;
+  }
+  
+  async initialize(partitions) {
+    const checkpoint = {
+      id: this.partitionSetId,
+      version: 1,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      totalPartitions: partitions.length,
+      partitions: partitions.map((p, index) => ({
+        index,
+        startKey: p.startKey,
+        endKey: p.endKey,
+        status: 'pending',
+        attempts: 0,
+        lastAttempt: null,
+        completedAt: null,
+        error: null
+      }))
+    };
+    
+    await this.cache.set(this.checkpointKey, checkpoint);
+    return checkpoint;
+  }
+  
+  async getProgress() {
+    const checkpoint = await this.cache.fetch(this.checkpointKey);
+    if (!checkpoint) return null;
+    
+    const stats = {
+      total: checkpoint.partitions.length,
+      pending: 0,
+      inProgress: 0,
+      completed: 0,
+      failed: 0
+    };
+    
+    checkpoint.partitions.forEach(p => {
+      stats[p.status]++;
+    });
+    
+    return {
+      checkpoint,
+      stats,
+      percentComplete: (stats.completed / stats.total) * 100
+    };
+  }
+  
+  async updatePartition(index, updates) {
+    const checkpoint = await this.cache.fetch(this.checkpointKey);
+    if (!checkpoint) throw new Error('Checkpoint not found');
+    
+    Object.assign(checkpoint.partitions[index], updates, {
+      updatedAt: Date.now()
+    });
+    
+    checkpoint.updatedAt = Date.now();
+    await this.cache.set(this.checkpointKey, checkpoint);
+    
+    return checkpoint.partitions[index];
+  }
+  
+  async markInProgress(index) {
+    return this.updatePartition(index, {
+      status: 'inProgress',
+      lastAttempt: Date.now(),
+      attempts: (await this.getPartition(index)).attempts + 1
+    });
+  }
+  
+  async markCompleted(index, metadata = {}) {
+    return this.updatePartition(index, {
+      status: 'completed',
+      completedAt: Date.now(),
+      error: null,
+      metadata
+    });
+  }
+  
+  async markFailed(index, error) {
+    return this.updatePartition(index, {
+      status: 'failed',
+      error: {
+        message: error.message,
+        code: error.code,
+        stack: error.stack
+      }
+    });
+  }
+  
+  async getPartition(index) {
+    const checkpoint = await this.cache.fetch(this.checkpointKey);
+    return checkpoint?.partitions[index];
+  }
+  
+  async getNextPending() {
+    const checkpoint = await this.cache.fetch(this.checkpointKey);
+    if (!checkpoint) return null;
+    
+    return checkpoint.partitions.find(p => 
+      p.status === 'pending' || 
+      (p.status === 'failed' && p.attempts < 3)
+    );
+  }
+}
 ```
