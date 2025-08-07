@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/indexzero/_all_docs#readme",
   "dependencies": {
+    "bloom-filters": "^3.0.2",
     "undici": "catalog:"
   },
   "devDependencies": {
