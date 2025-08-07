@@ -1,4 +1,4 @@
-import { CacheEntry } from '@vltpkg/registry-client';
+import { CacheEntry } from '@_all_docs/cache';
 
 class Packument {
   constructor({ name, contents, origin }) {

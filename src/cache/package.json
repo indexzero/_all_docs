@@ -12,6 +12,7 @@
   "author": "Charlie Robbins <npm@charlie.dev>",
   "license": "Apache-2.0",
   "scripts": {
+    "test": "node --test test/*.test.js",
     "lint": "xo",
     "lint:fix": "xo --fix"
   },
@@ -24,5 +25,8 @@
   },
   "peerDependencies": {
     "@_all_docs/storage": "workspace:*"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1"
   }
 }

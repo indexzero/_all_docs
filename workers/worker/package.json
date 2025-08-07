@@ -24,6 +24,7 @@
     "@_all_docs/storage": "workspace:*"
   },
   "scripts": {
+    "test": "node --test test/*.test.js",
     "build": "unbuild",
     "build:cf": "unbuild --preset cloudflare",
     "build:fastly": "unbuild --preset fastly",
