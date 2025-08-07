@@ -1,32 +1,24 @@
-import { createStorageDriver } from '@_all_docs/storage';
-
 /**
  * Cache abstraction that accepts storage drivers
  */
 export class Cache {
   constructor(options = {}) {
     this.path = options.path;
-    this.driver = options.driver || null;
+    this.driver = options.driver;
     this.env = options.env;
     this.bloomFilter = options.bloomFilter || null;
     this.bloomSize = options.bloomSize || 10000;
     this.bloomFalsePositiveRate = options.bloomFalsePositiveRate || 0.01;
-    this._driverPromise = null;
     this._bloomInitialized = false;
     this._inflightRequests = new Map();
+    
+    if (!this.driver) {
+      throw new Error('Storage driver is required for Cache');
+    }
   }
   
   async _ensureDriver() {
-    if (this.driver) return this.driver;
-    
-    if (!this._driverPromise) {
-      this._driverPromise = createStorageDriver(this.env).then(driver => {
-        this.driver = driver;
-        return driver;
-      });
-    }
-    
-    return this._driverPromise;
+    return this.driver;
   }
   
   async _initBloomFilter() {

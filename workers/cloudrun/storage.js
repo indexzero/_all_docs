@@ -79,3 +79,8 @@ export class GCSStorageDriver {
     );
   }
 }
+
+// Export factory function
+export function createStorage(bucketName) {
+  return new GCSStorageDriver(bucketName);
+}

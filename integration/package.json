@@ -10,9 +10,9 @@
     "@_all_docs/partition": "workspace:*",
     "@_all_docs/packument": "workspace:*",
     "@_all_docs/cache": "workspace:*",
-    "@_all_docs/queue": "workspace:*",
     "@_all_docs/worker": "workspace:*",
     "@_all_docs/types": "workspace:*",
+    "@_all_docs/worker-node": "workspace:*",
     "rimraf": "^6.0.1"
   }
 }

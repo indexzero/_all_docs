@@ -55,3 +55,12 @@ export class FastlyStorageDriver {
     );
   }
 }
+
+// Note: Fastly dictionaries are read-only at runtime
+// For write operations, you'd need to use Fastly's Object Store or a backend service
+export function createStorage(dictionaryName) {
+  // In a real Fastly app, you'd get the dictionary like:
+  // const dict = fastly.env.get(dictionaryName);
+  // For now, we'll throw an error
+  throw new Error('Fastly storage requires runtime dictionary access');
+}

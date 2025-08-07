@@ -1,0 +1,25 @@
+# Fastly Compute@Edge configuration
+manifest_version = 3
+name = "all-docs-worker"
+description = "All docs worker for Fastly Compute@Edge"
+authors = ["npm@charlie.dev"]
+language = "javascript"
+
+[local_server]
+[local_server.backends]
+[local_server.backends.queue_backend]
+url = "http://localhost:3001"
+
+[local_server.dictionaries]
+[local_server.dictionaries.cache_dict]
+file = "./cache-dict.json"
+
+[setup]
+[setup.backends]
+[setup.backends.queue_backend]
+address = "queue.example.com"
+port = 443
+
+[setup.dictionaries]
+[setup.dictionaries.cache_dict]
+items = []

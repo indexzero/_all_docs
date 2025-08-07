@@ -58,3 +58,8 @@ export class CloudflareStorageDriver {
     );
   }
 }
+
+// Export factory function
+export function createStorage(kvNamespace) {
+  return new CloudflareStorageDriver(kvNamespace);
+}

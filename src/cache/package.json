@@ -23,9 +23,6 @@
   "dependencies": {
     "undici": "catalog:"
   },
-  "peerDependencies": {
-    "@_all_docs/storage": "workspace:*"
-  },
   "devDependencies": {
     "rimraf": "^6.0.1"
   }
