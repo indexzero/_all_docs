@@ -1,7 +1,7 @@
 packages:
-  - 'cli/*'
-  - 'src/*'
-  - 'workers/*'
+  - cli/*
+  - src/*
+  - workers/*
 
 catalog:
   '@vltpkg/cache': 0.0.0-9
@@ -10,4 +10,4 @@ catalog:
   '@vltpkg/xdg': 0.0.0-9
   p-map: ^7.0.3
   p-map-series: ^3.0.0
-  undici: ^7.4.0
+  undici: ^7.13.0

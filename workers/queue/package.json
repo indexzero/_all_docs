@@ -13,6 +13,9 @@
     "bullmq": "^5.0.0",
     "p-retry": "^6.0.0"
   },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
   "peerDependencies": {
     "@_all_docs/types": "workspace:*"
   }
