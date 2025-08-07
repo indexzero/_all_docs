@@ -21,11 +21,11 @@ Even with static imports, the domain-centric architecture forces every runtime t
 ##### New Directory Structure
 ```
 workers/
-├── shared/                  # Runtime-agnostic core logic
+├── worker/                  # Runtime-agnostic core logic
 │   ├── interfaces.js       # JSDoc type definitions
-│   ├── processor-core.js   # Core processing logic
-│   ├── queue-core.js       # Queue abstractions
-│   └── storage-core.js     # Storage abstractions
+│   ├── processor.js        # Core processing logic
+│   ├── queue.js           # Queue abstractions
+│   └── storage.js         # Storage abstractions
 ├── cloudflare/
 │   ├── processor.js        # CF-specific adapter
 │   ├── queue.js           # Durable Objects queue
@@ -61,7 +61,7 @@ workers/
 
 **Step 1: Create Shared Interfaces**
 ```javascript
-// workers/shared/interfaces.js
+// workers/worker/interfaces.js
 /**
  * @typedef {Object} Storage
  * @property {(key: string) => Promise<any>} get
@@ -86,8 +86,8 @@ workers/
 
 **Step 2: Extract Core Logic**
 ```javascript
-// workers/shared/processor-core.js
-export class ProcessorCore {
+// workers/worker/processor.js
+export class Processor {
   constructor(config) {
     this.storage = config.storage;
     this.queue = config.queue;
@@ -106,13 +106,13 @@ export class ProcessorCore {
 **Step 3: Create Runtime Adapters**
 ```javascript
 // workers/cloudflare/worker.js
-import { ProcessorCore } from '../shared/processor-core.js';
+import { Processor } from '@_all_docs/worker';
 import { CloudflareStorage } from './storage.js';
 import { DurableQueue } from './queue.js';
 
 export default {
   async fetch(request, env, ctx) {
-    const processor = new ProcessorCore({
+    const processor = new Processor({
       storage: new CloudflareStorage(env.CACHE_KV),
       queue: new DurableQueue(env.QUEUE_DO)
     });
@@ -126,12 +126,12 @@ export default {
 ```javascript
 // workers/node/worker.js
 import express from 'express';
-import { ProcessorCore } from '../shared/processor-core.js';
+import { Processor } from '@_all_docs/worker';
 import { NodeStorage } from './storage.js';
 import { LocalQueue } from './queue.js';
 
 const app = express();
-const processor = new ProcessorCore({
+const processor = new Processor({
   storage: new NodeStorage(process.env.CACHE_DIR),
   queue: new LocalQueue({ concurrency: 10 })
 });
@@ -173,7 +173,7 @@ export const node = {
 - **Maintainability**: Clear separation of concerns
 
 #### Migration Strategy
-1. Create `workers/shared/` with interfaces
+1. Enhance `workers/worker/` with shared interfaces
 2. Move types from `workers/types/` to `src/types/`
 3. Extract core logic to shared modules
 4. Create runtime directories with thin adapters
@@ -192,7 +192,7 @@ const DEFAULT_ORIGIN = 'https://replicate.npmjs.com'; // NOT registry.npmjs.org
 // integration/end-to-end.test.js - line 20
 NPM_ORIGIN: 'https://replicate.npmjs.com', // for _all_docs
 
-// workers/shared/processor-core.js (after refactor)
+// workers/worker/processor.js (after refactor)
 const origin = env.NPM_ORIGIN || 'https://replicate.npmjs.com';
 ```
 
