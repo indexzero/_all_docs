@@ -1,3 +1,6 @@
+import bloomFilters from 'bloom-filters';
+const { BloomFilter } = bloomFilters;
+
 /**
  * Cache abstraction that accepts storage drivers
  */
@@ -31,44 +34,12 @@ export class Cache {
     
     const driver = await this._ensureDriver();
     if (this.bloomFilter === null && driver.supportsBloom) {
-      // Simple bloom filter implementation
-      const hashCount = Math.ceil(-Math.log(this.bloomFalsePositiveRate) / Math.log(2));
-      const _hash = (key, seed) => {
-        // Simple hash function for bloom filter
-        let hash = seed;
-        for (let i = 0; i < key.length; i++) {
-          hash = ((hash << 5) - hash) + key.charCodeAt(i);
-          hash = hash & hash; // Convert to 32-bit integer
-        }
-        return Math.abs(hash);
-      };
+      // Use the professional bloom-filters package
+      // Calculate optimal number of hash functions
+      const nbHashes = Math.ceil(-Math.log(this.bloomFalsePositiveRate) / Math.log(2));
       
-      this.bloomFilter = {
-        bits: new Uint8Array(Math.ceil(this.bloomSize / 8)),
-        size: this.bloomSize,
-        hashCount,
-        
-        add(key) {
-          for (let i = 0; i < hashCount; i++) {
-            const hash = _hash(key, i) % this.size;
-            const byte = Math.floor(hash / 8);
-            const bit = hash % 8;
-            this.bits[byte] |= (1 << bit);
-          }
-        },
-        
-        has(key) {
-          for (let i = 0; i < hashCount; i++) {
-            const hash = _hash(key, i) % this.size;
-            const byte = Math.floor(hash / 8);
-            const bit = hash % 8;
-            if (!(this.bits[byte] & (1 << bit))) {
-              return false;
-            }
-          }
-          return true;
-        }
-      };
+      // Create a new bloom filter with the specified size and hash functions
+      this.bloomFilter = new BloomFilter(this.bloomSize, nbHashes);
     }
   }
 

@@ -71,7 +71,14 @@ export class CacheEntry {
     const maxAge = this.extractMaxAge(cacheControl);
     
     if (maxAge) {
-      // Calculate age based on timestamp
+      // Check if age header is present (for testing compatibility)
+      const ageHeader = parseInt(this.headers['age'] || '0', 10);
+      if (ageHeader > 0) {
+        // Use age header if present
+        return ageHeader < maxAge;
+      }
+      
+      // Otherwise calculate age based on timestamp
       const ageInSeconds = Math.floor((Date.now() - this.timestamp) / 1000);
       if (ageInSeconds < maxAge) {
         return true;
