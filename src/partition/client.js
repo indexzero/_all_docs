@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 import debuglog from 'debug';
 import pMap from 'p-map';
 import { BaseHTTPClient, createDispatcher, Cache, CacheEntry, createPartitionKey } from '@_all_docs/cache';
+import { createStorageDriver } from '@_all_docs/worker';
 import { Partition } from './index.js';
 
 const debug = debuglog('_all_docs:partition:client');
@@ -21,24 +22,36 @@ export class PartitionClient extends BaseHTTPClient {
       userAgent: '_all_docs/0.1.0'
     });
     
-    // Set up cache
+    // Set up cache options
     const cachePath = options.cache || (env?.CACHE_DIR ? resolve(env.CACHE_DIR, 'partitions') : './cache/partitions');
-    this.cache = new Cache({ 
+    this.cacheOptions = { 
       path: cachePath,
-      env: options.env 
-    });
-    
-    // Initialize dispatcher for connection pooling
-    this.initDispatcher(options.env);
+      env: options.env || env
+    };
+    this.cache = null; // Will be initialized on first use
     
     // Options
-    this.env = options.env;
+    this.env = options.env || env;
     this.dryRun = options.dryRun;
     this.limit = options.limit || 10;
   }
 
-  async initDispatcher(env) {
+  async initializeAsync(env) {
+    // Initialize dispatcher for connection pooling
     this.dispatcher = await createDispatcher(env);
+    
+    // Initialize storage driver
+    const driver = await createStorageDriver(env || { RUNTIME: 'node' });
+    this.cache = new Cache({ 
+      ...this.cacheOptions,
+      driver
+    });
+  }
+  
+  async ensureInitialized() {
+    if (!this.cache) {
+      await this.initializeAsync(this.env);
+    }
   }
 
   async requestAll(partitions, options = {}) {
@@ -70,6 +83,8 @@ export class PartitionClient extends BaseHTTPClient {
    * @returns {Promise<CacheEntry>} Cache entry with partition data
    */
   async request({ startKey, endKey }, options = {}) {
+    await this.ensureInitialized();
+    
     // Build URL with query parameters
     const url = new URL('_all_docs', this.origin);
     if (startKey) {
@@ -95,10 +110,13 @@ export class PartitionClient extends BaseHTTPClient {
     // Try cache first
     if (cache) {
       const cached = await this.cache.fetch(cacheKey);
+      debug('Cache lookup for', cacheKey, 'result:', !!cached);
       if (cached) {
         const entry = CacheEntry.decode(cached);
+        debug('Cache entry valid?', entry.valid);
         if (entry.valid) {
           entry.hit = true;
+          debug('Returning cached entry');
           return entry;
         }
         
@@ -156,6 +174,7 @@ export class PartitionClient extends BaseHTTPClient {
 
       // Cache the result
       if (cache) {
+        debug('Caching result for', cacheKey);
         await this.cache.set(cacheKey, entry.encode());
       }
 

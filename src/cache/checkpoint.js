@@ -106,9 +106,11 @@ export class PartitionCheckpoint {
     const checkpoint = await this.cache.fetch(this.checkpointKey);
     if (!checkpoint) return null;
     
-    return checkpoint.partitions.find(p => 
+    const next = checkpoint.partitions.find(p => 
       p.status === 'pending' || 
       (p.status === 'failed' && p.attempts < 3)
     );
+    
+    return next || null;
   }
 }

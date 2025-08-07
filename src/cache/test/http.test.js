@@ -1,39 +1,99 @@
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import { strict as assert } from 'node:assert';
+import { createServer } from 'node:http';
 import { BaseHTTPClient, createDispatcher } from '../http.js';
 
 describe('BaseHTTPClient', () => {
   let client;
+  let server;
+  let serverUrl;
 
-  beforeEach(() => {
-    client = new BaseHTTPClient('https://httpbin.org', {
+  beforeEach(async () => {
+    // Create mock server
+    server = createServer((req, res) => {
+      if (req.url === '/timeout') {
+        // Don't respond to trigger timeout
+        return;
+      }
+      
+      if (req.url === '/delay/5') {
+        // Simulate delay
+        setTimeout(() => {
+          res.writeHead(200, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ delayed: true }));
+        }, 5000);
+        return;
+      }
+      
+      if (req.url === '/status/200') {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ok' }));
+        return;
+      }
+      
+      if (req.url === '/headers') {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ headers: req.headers }));
+        return;
+      }
+      
+      if (req.url === '/retry') {
+        const retryCount = req.headers['x-retry-count'] || '0';
+        if (retryCount === '2') {
+          res.writeHead(200, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ success: true }));
+        } else {
+          res.writeHead(503);
+          res.end();
+        }
+        return;
+      }
+      
+      // Default response
+      res.writeHead(404);
+      res.end();
+    });
+    
+    await new Promise(resolve => server.listen(0, resolve));
+    serverUrl = `http://localhost:${server.address().port}`;
+    
+    client = new BaseHTTPClient(serverUrl, {
       requestTimeout: 5000,
       userAgent: 'test-agent/1.0'
     });
   });
+  
+  afterEach(() => new Promise(resolve => server.close(resolve)));
 
   it('should create instance with correct properties', () => {
-    assert.equal(client.origin, 'https://httpbin.org');
+    assert.equal(client.origin, serverUrl);
     assert.equal(client.requestTimeout, 5000);
     assert.equal(client.traceHeader, 'x-trace-id');
     assert.ok(client.defaultHeaders instanceof Headers);
     assert.equal(client.defaultHeaders.get('user-agent'), 'test-agent/1.0');
   });
 
-  it.skip('should make GET request successfully', async () => {
+  it('should make GET request successfully', async () => {
     const response = await client.request('/status/200');
     assert.equal(response.status, 200);
     assert.ok(response instanceof Response);
+    const data = await response.json();
+    assert.equal(data.status, 'ok');
   });
 
-  it.skip('should handle request timeout', async () => {
-    const timeoutClient = new BaseHTTPClient('https://httpbin.org', {
+  it('should handle request timeout', async () => {
+    const timeoutClient = new BaseHTTPClient(serverUrl, {
       requestTimeout: 100
     });
 
     await assert.rejects(
       async () => await timeoutClient.request('/delay/5'),
-      /Request timeout/
+      (err) => {
+        // Check for timeout-related errors
+        return err.message.includes('timeout') || 
+               err.name === 'AbortError' ||
+               err.code === 'UND_ERR_ABORTED';
+      }
     );
   });
 
@@ -60,7 +120,7 @@ describe('BaseHTTPClient', () => {
     assert.equal(options.headers.get('if-modified-since'), 'Wed, 21 Oct 2015 07:28:00 GMT');
   });
 
-  it.skip('should merge signals properly', async () => {
+  it('should merge signals properly', async () => {
     const controller = new AbortController();
     let aborted = false;
 
@@ -73,18 +133,48 @@ describe('BaseHTTPClient', () => {
       });
     } catch (error) {
       aborted = true;
+      assert.ok(error.name === 'AbortError' || error.message.includes('abort'));
     }
 
     assert.ok(aborted, 'Request should have been aborted');
   });
 
-  it.skip('should add trace header to requests', async () => {
+  it('should add trace header to requests', async () => {
     const response = await client.request('/headers');
     const data = await response.json();
     
     assert.ok(data.headers);
-    assert.ok(data.headers['X-Trace-Id']);
-    assert.ok(data.headers['User-Agent'] === 'test-agent/1.0');
+    assert.ok(data.headers['x-trace-id']);
+    assert.equal(data.headers['user-agent'], 'test-agent/1.0');
+  });
+  
+  it.skip('should retry on 503 errors', async () => {
+    // TODO: Implement retry logic in BaseHTTPClient or use undici's retry
+    // For now, skipping as retry is not implemented in BaseHTTPClient
+    let retryCount = 0;
+    
+    // Create client with retry configuration
+    const retryClient = new BaseHTTPClient(serverUrl, {
+      requestTimeout: 5000,
+      userAgent: 'test-agent/1.0',
+      retry: {
+        limit: 3,
+        methods: ['GET'],
+        statusCodes: [503]
+      }
+    });
+    
+    const response = await retryClient.request('/retry', {
+      headers: {
+        'x-retry-count': () => String(retryCount++)
+      }
+    });
+    
+    assert.equal(response.status, 200);
+    const data = await response.json();
+    assert.equal(data.success, true);
+    // We expect 3 total attempts (initial + 2 retries)
+    assert.ok(retryCount >= 1, 'Should have retried at least once');
   });
 });
 

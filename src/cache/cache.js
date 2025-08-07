@@ -4,20 +4,24 @@
 export class Cache {
   constructor(options = {}) {
     this.path = options.path;
-    this.driver = options.driver;
+    this.driver = options.driver || null;
     this.env = options.env;
     this.bloomFilter = options.bloomFilter || null;
     this.bloomSize = options.bloomSize || 10000;
     this.bloomFalsePositiveRate = options.bloomFalsePositiveRate || 0.01;
     this._bloomInitialized = false;
     this._inflightRequests = new Map();
+    this._driverInitialized = false;
     
     if (!this.driver) {
-      throw new Error('Storage driver is required for Cache');
+      throw new Error('Storage driver is required');
     }
   }
   
   async _ensureDriver() {
+    if (!this.driver) {
+      throw new Error('Storage driver is required');
+    }
     return this.driver;
   }
   
@@ -28,14 +32,25 @@ export class Cache {
     const driver = await this._ensureDriver();
     if (this.bloomFilter === null && driver.supportsBloom) {
       // Simple bloom filter implementation
+      const hashCount = Math.ceil(-Math.log(this.bloomFalsePositiveRate) / Math.log(2));
+      const _hash = (key, seed) => {
+        // Simple hash function for bloom filter
+        let hash = seed;
+        for (let i = 0; i < key.length; i++) {
+          hash = ((hash << 5) - hash) + key.charCodeAt(i);
+          hash = hash & hash; // Convert to 32-bit integer
+        }
+        return Math.abs(hash);
+      };
+      
       this.bloomFilter = {
         bits: new Uint8Array(Math.ceil(this.bloomSize / 8)),
         size: this.bloomSize,
-        hashCount: Math.ceil(-Math.log(this.bloomFalsePositiveRate) / Math.log(2)),
+        hashCount,
         
         add(key) {
-          for (let i = 0; i < this.hashCount; i++) {
-            const hash = this._hash(key, i) % this.size;
+          for (let i = 0; i < hashCount; i++) {
+            const hash = _hash(key, i) % this.size;
             const byte = Math.floor(hash / 8);
             const bit = hash % 8;
             this.bits[byte] |= (1 << bit);
@@ -43,8 +58,8 @@ export class Cache {
         },
         
         has(key) {
-          for (let i = 0; i < this.hashCount; i++) {
-            const hash = this._hash(key, i) % this.size;
+          for (let i = 0; i < hashCount; i++) {
+            const hash = _hash(key, i) % this.size;
             const byte = Math.floor(hash / 8);
             const bit = hash % 8;
             if (!(this.bits[byte] & (1 << bit))) {
@@ -52,16 +67,6 @@ export class Cache {
             }
           }
           return true;
-        },
-        
-        _hash(key, seed) {
-          // Simple hash function for bloom filter
-          let hash = seed;
-          for (let i = 0; i < key.length; i++) {
-            hash = ((hash << 5) - hash) + key.charCodeAt(i);
-            hash = hash & hash; // Convert to 32-bit integer
-          }
-          return Math.abs(hash);
         }
       };
     }
@@ -105,6 +110,7 @@ export class Cache {
 
   async set(key, value, options = {}) {
     const driver = await this._ensureDriver();
+    await this._initBloomFilter();
     
     // Add to bloom filter
     if (this.bloomFilter) {
@@ -115,6 +121,7 @@ export class Cache {
 
   async has(key) {
     const driver = await this._ensureDriver();
+    await this._initBloomFilter();
     
     // Check bloom filter first
     if (this.bloomFilter && !this.bloomFilter.has(key)) {
