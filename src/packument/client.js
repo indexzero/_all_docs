@@ -116,7 +116,7 @@ export class PackumentClient extends BaseHTTPClient {
 
     // Prepare request headers
     const headers = new Headers(options.headers || {});
-    headers.set('accept', 'application/vnd.npm.install-v1+json');
+    headers.set('accept', 'application/json'); // Get full packument, not neutered version
     headers.set('accept-encoding', 'gzip, deflate, br');
 
     console.log(`${url.href}`);
