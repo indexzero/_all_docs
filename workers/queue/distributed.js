@@ -1,4 +1,5 @@
-import { Queue, Worker, QueueScheduler } from 'bullmq';
+import pkg from 'bullmq';
+const { Queue, Worker, QueueScheduler } = pkg;
 
 export class DistributedWorkQueue {
   constructor(options = {}) {

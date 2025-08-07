@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "pnpm -r test",
-    "test:integration": "node --test test/integration/*.test.js",
+    "test:integration": "pnpm --filter @_all_docs/integration-tests test",
     "test:all": "pnpm test && pnpm test:integration",
     "lint": "xo",
     "lint:fix": "xo --fix",
