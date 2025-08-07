@@ -118,9 +118,10 @@ export class PartitionClient extends BaseHTTPClient {
     console.log(`${url.href}`);
     
     try {
-      // Make the fetch request
+      // Make the fetch request - filter out custom options
+      const { cache: _, staleWhileRevalidate: __, ...fetchOptions } = options;
       const response = await super.request(url, {
-        ...options,
+        ...fetchOptions,
         headers,
         signal,
         dispatcher: this.dispatcher

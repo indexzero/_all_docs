@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "test": "pnpm -r test",
+    "test:integration": "node --test test/integration/*.test.js",
+    "test:all": "pnpm test && pnpm test:integration",
     "lint": "xo",
     "lint:fix": "xo --fix",
     "changeset": "changeset",
@@ -17,9 +19,9 @@
     "url": "git+https://github.com/indexzero/_all_docs.git"
   },
   "dependencies": {
-    "debug": "^4.4.0",
+    "debug": "^4.4.1",
     "delay": "^6.0.0",
-    "jackspeak": "^4.1.0",
+    "jackspeak": "^4.1.1",
     "minimist": "^1.2.8",
     "nano": "^10.1.4",
     "p-map": "catalog:",
@@ -28,8 +30,9 @@
     "undici": "catalog:"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.27.1",
-    "npm-high-impact": "^1.10.0",
+    "@changesets/cli": "^2.29.5",
+    "npm-high-impact": "^1.11.0",
+    "rimraf": "^6.0.1",
     "xo": "^1.2.1"
   },
   "keywords": [
