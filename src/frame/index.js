@@ -70,6 +70,15 @@ class Frame {
     return accumulator;
   }
 
+  async reduceAsync(fn, initialValue) {
+    let accumulator = initialValue;
+    for await (const entry of this) {
+      accumulator = fn(accumulator, entry);
+    }
+
+    return accumulator;
+  }
+
   filter(fn) {
     // eslint-disable-next-line unicorn/no-this-assignment
     const frame = this;
@@ -94,18 +103,18 @@ class Frame {
 }
 
 class PackumentFrame extends Frame {
-  static fromCache(path) {
-    return new PartitionFrame(
-      new Cache({ path })
+  static fromCache(path, driver) {
+    return new PackumentFrame(
+      new Cache({ path, driver })
         .map(Packument.fromCacheEntry)
     );
   }
 }
 
 class PartitionFrame extends Frame {
-  static fromCache(path) {
+  static fromCache(path, driver) {
     return new PartitionFrame(
-      new Cache({ path })
+      new Cache({ path, driver })
         .map(Partition.fromCacheEntry)
     );
   }

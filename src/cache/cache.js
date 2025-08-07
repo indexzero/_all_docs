@@ -135,7 +135,7 @@ export class Cache {
     for await (const key of this.keys('')) {
       const value = await this.fetch(key);
       if (value) {
-        yield { key, value };
+        yield [key, value];
       }
     }
   }
