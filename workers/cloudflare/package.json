@@ -1,0 +1,23 @@
+{
+  "name": "@_all_docs/worker-cloudflare",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./storage": "./storage.js",
+    "./queue": "./queue.js"
+  },
+  "dependencies": {
+    "@_all_docs/worker": "workspace:*",
+    "@_all_docs/types": "workspace:*"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0",
+    "miniflare": "^3.0.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  }
+}

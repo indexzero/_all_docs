@@ -1,0 +1,22 @@
+{
+  "name": "@_all_docs/worker-cloudrun",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./storage": "./storage.js",
+    "./queue": "./queue.js"
+  },
+  "dependencies": {
+    "@_all_docs/worker": "workspace:*",
+    "@_all_docs/types": "workspace:*",
+    "@google-cloud/storage": "^7.0.0",
+    "express": "^4.21.2"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "start": "node index.js",
+    "docker:build": "docker build -t all-docs-worker .",
+    "docker:run": "docker run -p 8080:8080 -e RUNTIME=cloudrun all-docs-worker"
+  }
+}

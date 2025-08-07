@@ -7,7 +7,7 @@ import { rimraf } from 'rimraf';
 import { PartitionClient } from '@_all_docs/partition';
 import { PackumentClient } from '@_all_docs/packument';
 import { Cache, PartitionCheckpoint } from '@_all_docs/cache';
-import { LocalWorkQueue } from '@_all_docs/queue';
+import { LocalWorkQueue } from '@_all_docs/worker-node/queue';
 import { processPartition, processPackument, processPartitionSet } from '@_all_docs/worker/processors';
 import { WorkItemTypes } from '@_all_docs/types';
 

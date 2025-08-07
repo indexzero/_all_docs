@@ -3,6 +3,7 @@ import { strict as assert } from 'node:assert';
 import { join } from 'node:path';
 import { rimraf } from 'rimraf';
 import { Cache } from '../cache.js';
+import { MockStorageDriver } from './mock-driver.js';
 
 describe('Cache', () => {
   let cache;
@@ -11,6 +12,7 @@ describe('Cache', () => {
   beforeEach(() => {
     cache = new Cache({ 
       path: cachePath,
+      driver: new MockStorageDriver(),
       env: { 
         RUNTIME: 'node',
         CACHE_DIR: cachePath

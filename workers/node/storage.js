@@ -92,3 +92,8 @@ export class NodeStorageDriver {
     );
   }
 }
+
+// Export a factory function that matches the runtime interface
+export function createStorage(cacheDir) {
+  return new NodeStorageDriver(cacheDir);
+}
