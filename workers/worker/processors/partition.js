@@ -20,6 +20,9 @@ export async function processPartition(workItem, env) {
       cache: env.CACHE_DIR || env.CACHE_KV || env.CACHE_DICT
     });
     
+    // Initialize the client to ensure cache is ready
+    await client.initializeAsync(env);
+    
     // Update checkpoint if provided
     if (partitionSetId) {
       checkpoint = new PartitionCheckpoint(client.cache, partitionSetId);

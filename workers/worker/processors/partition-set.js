@@ -21,9 +21,11 @@ export async function processPartitionSet(workItem, env, enqueueWork) {
     // Create partition client for checkpoint management
     const client = new PartitionClient({
       origin: env.NPM_ORIGIN || 'https://replicate.npmjs.com',
-      env,
-      cache: env.CACHE_DIR || env.CACHE_KV || env.CACHE_DICT
+      env
     });
+    
+    // Initialize the client to ensure cache is ready
+    await client.initializeAsync(env);
     
     // Initialize checkpoint for tracking progress
     const checkpoint = new PartitionCheckpoint(client.cache, partitionSetId);
