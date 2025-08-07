@@ -45,11 +45,31 @@ export function createMockRegistry() {
       res.end(JSON.stringify({
         name: packageName,
         'dist-tags': { latest: '1.0.0' },
+        description: `A mock package for ${packageName}`,
+        readme: `# ${packageName}\n\nThis is a mock readme for testing purposes.`,
+        maintainers: [{ name: 'mockuser', email: 'mock@example.com' }],
+        time: {
+          created: '2023-01-01T00:00:00.000Z',
+          modified: '2023-06-01T00:00:00.000Z',
+          '1.0.0': '2023-01-01T00:00:00.000Z'
+        },
         versions: {
           '1.0.0': {
             name: packageName,
             version: '1.0.0',
-            dependencies: packageName === 'express' ? { 'body-parser': '^1.0.0' } : {}
+            description: `A mock package for ${packageName}`,
+            main: 'index.js',
+            dependencies: packageName === 'express' ? { 'body-parser': '^1.0.0' } : {},
+            devDependencies: {},
+            scripts: { test: 'echo "Error: no test specified" && exit 1' },
+            repository: { type: 'git', url: `git+https://github.com/mock/${packageName}.git` },
+            author: 'Mock Author',
+            license: 'MIT',
+            dist: {
+              tarball: `http://${req.headers.host}/${packageName}/-/${packageName}-1.0.0.tgz`,
+              shasum: 'mockshasum123',
+              integrity: 'sha512-mockintegrity=='
+            }
           }
         }
       }));
