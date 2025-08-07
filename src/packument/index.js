@@ -1,4 +1,4 @@
-import { CacheEntry } from '@_all_docs/cache';
+import { CacheEntry, createPackumentKey, decodeCacheKey } from '@_all_docs/cache';
 
 class Packument {
   constructor({ name, contents, origin }) {
@@ -8,20 +8,24 @@ class Packument {
   }
 
   static cacheKey(name, origin = 'https://registry.npmjs.com') {
-    return `${new URL(name, origin)}`;
+    return createPackumentKey(name, origin);
   }
 
   static fromCacheEntry([key, val]) {
-    const where = new URL(key);
-    const name = where.pathname.slice(1);
+    // Decode the cache key to get package name and origin
+    const decoded = decodeCacheKey(key);
+    if (decoded.type !== 'packument') {
+      throw new Error(`Invalid cache key type: ${decoded.type}`);
+    }
+    
     const entry = CacheEntry.decode(val);
     const body = entry.json();
 
     // TODO (0): include all CacheEntry metadata (e.g. headers, etc)
     return new Packument({
-      name,
+      name: decoded.packageName,
       contents: body,
-      origin: where.origin
+      origin: decoded.origin
     });
   }
 }
