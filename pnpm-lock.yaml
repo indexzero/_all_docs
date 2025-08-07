@@ -97,6 +97,30 @@ importers:
         specifier: 'catalog:'
         version: 7.0.3
 
+  integration:
+    devDependencies:
+      '@_all_docs/cache':
+        specifier: workspace:*
+        version: link:../src/cache
+      '@_all_docs/packument':
+        specifier: workspace:*
+        version: link:../src/packument
+      '@_all_docs/partition':
+        specifier: workspace:*
+        version: link:../src/partition
+      '@_all_docs/queue':
+        specifier: workspace:*
+        version: link:../workers/queue
+      '@_all_docs/types':
+        specifier: workspace:*
+        version: link:../workers/types
+      '@_all_docs/worker':
+        specifier: workspace:*
+        version: link:../workers/worker
+      rimraf:
+        specifier: ^6.0.1
+        version: 6.0.1
+
   src/cache:
     dependencies:
       '@_all_docs/storage':

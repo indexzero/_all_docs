@@ -2,6 +2,7 @@ packages:
   - cli/*
   - src/*
   - workers/*
+  - integration
 
 catalog:
   '@vltpkg/cache': 0.0.0-9
