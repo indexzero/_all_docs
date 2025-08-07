@@ -24,7 +24,7 @@ describe('Cache', () => {
     await rimraf(cachePath, { maxRetries: 1, retryDelay: 100 });
   });
 
-  describe.skip('basic operations', () => {
+  describe('basic operations', () => {
     it('should set and fetch values', async () => {
       const key = 'test-key-1';
       const value = { data: 'test value', number: 42 };
@@ -60,10 +60,11 @@ describe('Cache', () => {
     });
   });
 
-  describe.skip('bloom filter', () => {
+  describe('bloom filter', () => {
     it('should use bloom filter for non-existence', async () => {
       const bloomCache = new Cache({
         path: cachePath,
+        driver: new MockStorageDriver(),
         env: { 
           RUNTIME: 'node',
           CACHE_DIR: cachePath
@@ -80,6 +81,7 @@ describe('Cache', () => {
     it('should add to bloom filter on set', async () => {
       const bloomCache = new Cache({
         path: cachePath,
+        driver: new MockStorageDriver(),
         env: { 
           RUNTIME: 'node',
           CACHE_DIR: cachePath
@@ -96,7 +98,7 @@ describe('Cache', () => {
     });
   });
 
-  describe.skip('request coalescing', () => {
+  describe('request coalescing', () => {
     it('should coalesce concurrent requests for same key', async () => {
       let fetchCount = 0;
       
@@ -147,7 +149,7 @@ describe('Cache', () => {
     });
   });
 
-  describe.skip('async iterator', () => {
+  describe('async iterator', () => {
     it('should iterate over cache entries', async () => {
       const entries = [
         ['key1', { value: 1 }],
@@ -172,7 +174,7 @@ describe('Cache', () => {
     });
   });
 
-  describe.skip('keys iterator', () => {
+  describe('keys iterator', () => {
     it('should list keys with prefix', async () => {
       await cache.set('prefix:1', { n: 1 });
       await cache.set('prefix:2', { n: 2 });
@@ -189,7 +191,7 @@ describe('Cache', () => {
     });
   });
 
-  describe.skip('map interface', () => {
+  describe('map interface', () => {
     it('should support map transformation', async () => {
       await cache.set('transform1', { value: 10 });
       await cache.set('transform2', { value: 20 });
@@ -208,35 +210,34 @@ describe('Cache', () => {
   });
 
   describe('driver initialization', () => {
-    it('should lazy initialize driver', async () => {
+    it('should require driver on construction', async () => {
       const lazyCache = new Cache({
         path: cachePath,
+        driver: new MockStorageDriver(),
         env: { 
           RUNTIME: 'node',
           CACHE_DIR: cachePath
         }
       });
 
-      assert.equal(lazyCache.driver, null);
-      
-      // First operation should initialize
-      await lazyCache.set('init-test', { initialized: true });
-      
       assert.ok(lazyCache.driver !== null);
+      
+      // Operations should work
+      await lazyCache.set('init-test', { initialized: true });
+      const value = await lazyCache.fetch('init-test');
+      assert.deepEqual(value, { initialized: true });
     });
 
-    it('should handle driver initialization errors gracefully', async () => {
-      const badCache = new Cache({
-        path: cachePath,
-        env: { 
-          RUNTIME: 'unknown-runtime',
-          CACHE_DIR: cachePath
-        }
-      });
-
-      await assert.rejects(
-        async () => await badCache.fetch('test'),
-        /Unsupported runtime/
+    it('should throw error when no driver provided', async () => {
+      assert.throws(
+        () => new Cache({
+          path: cachePath,
+          env: { 
+            RUNTIME: 'node',
+            CACHE_DIR: cachePath
+          }
+        }),
+        /Storage driver is required/
       );
     });
   });

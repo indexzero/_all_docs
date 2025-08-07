@@ -10,14 +10,17 @@ import { Cache, PartitionCheckpoint } from '@_all_docs/cache';
 import { LocalWorkQueue } from '@_all_docs/worker-node/queue';
 import { processPartition, processPackument, processPartitionSet } from '@_all_docs/worker/processors';
 import { WorkItemTypes } from '@_all_docs/types';
+import { startMockRegistry, stopMockRegistry } from './mock-registry.js';
 
 describe('End-to-End Integration Tests', () => {
   const fixturesPath = join(import.meta.dirname, 'fixtures');
   let env;
+  let mockRegistry;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    mockRegistry = await startMockRegistry();
     env = {
-      NPM_ORIGIN: 'https://replicate.npmjs.com',
+      NPM_ORIGIN: mockRegistry.url,
       RUNTIME: 'node',
       CACHE_DIR: fixturesPath,
       DEBUG: true
@@ -25,14 +28,15 @@ describe('End-to-End Integration Tests', () => {
   });
 
   afterEach(async () => {
+    await stopMockRegistry(mockRegistry.server);
     await rimraf(fixturesPath, { glob: false, maxRetries: 1 });
   });
 
-  describe.skip('Partition Processing Pipeline', () => {
+  describe('Partition Processing Pipeline', () => {
     it('should fetch and cache partition data', async () => {
       const client = new PartitionClient({ 
         env,
-        origin: 'https://replicate.npmjs.com'
+        origin: mockRegistry.url
       });
       
       // Request a small partition
@@ -72,7 +76,7 @@ describe('End-to-End Integration Tests', () => {
 
       const partitionEnv = {
         ...env,
-        NPM_ORIGIN: 'https://replicate.npmjs.com'
+        NPM_ORIGIN: mockRegistry.url
       };
       const result = await processPartition(workItem, partitionEnv);
 
@@ -83,7 +87,7 @@ describe('End-to-End Integration Tests', () => {
     });
   });
 
-  describe.skip('Packument Processing Pipeline', () => {
+  describe('Packument Processing Pipeline', () => {
     it('should fetch and cache packument data', async () => {
       const client = new PackumentClient({ env });
       
@@ -126,7 +130,7 @@ describe('End-to-End Integration Tests', () => {
     });
   });
 
-  describe.skip('Partition Set Processing with Checkpoints', () => {
+  describe('Partition Set Processing with Checkpoints', () => {
     it('should process partition set and track progress', async () => {
       const partitions = [
         { startKey: 'aaa', endKey: 'aab' },
@@ -170,7 +174,7 @@ describe('End-to-End Integration Tests', () => {
       const firstPartition = enqueuedItems[0];
       const partitionEnv = {
         ...env,
-        NPM_ORIGIN: 'https://replicate.npmjs.com'
+        NPM_ORIGIN: mockRegistry.url
       };
       await processPartition(firstPartition, partitionEnv);
 
@@ -182,7 +186,7 @@ describe('End-to-End Integration Tests', () => {
     });
   });
 
-  describe.skip('Queue Integration', () => {
+  describe('Queue Integration', () => {
     it('should process work items through local queue', async () => {
       const queue = new LocalWorkQueue({
         concurrency: 2,
@@ -267,7 +271,7 @@ describe('End-to-End Integration Tests', () => {
     });
   });
 
-  describe.skip('Error Handling and Recovery', () => {
+  describe('Error Handling and Recovery', () => {
     it('should handle and recover from network errors', async () => {
       const badEnv = {
         ...env,
@@ -292,7 +296,7 @@ describe('End-to-End Integration Tests', () => {
     });
   });
 
-  describe.skip('Performance Considerations', () => {
+  describe('Performance Considerations', () => {
     it('should coalesce concurrent cache requests', async () => {
       const cache = new Cache({ path: join(fixturesPath, 'perf-test'), env });
       

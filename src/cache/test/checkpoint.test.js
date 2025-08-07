@@ -3,8 +3,9 @@ import { strict as assert } from 'node:assert';
 import { join } from 'node:path';
 import { PartitionCheckpoint } from '../checkpoint.js';
 import { Cache } from '../cache.js';
+import { MockStorageDriver } from './mock-driver.js';
 
-describe.skip('PartitionCheckpoint', () => {
+describe('PartitionCheckpoint', () => {
   let cache;
   let checkpoint;
   const testPartitions = [
@@ -17,6 +18,7 @@ describe.skip('PartitionCheckpoint', () => {
     const cachePath = join(import.meta.dirname, 'fixtures', 'checkpoint-test');
     cache = new Cache({ 
       path: cachePath,
+      driver: new MockStorageDriver(),
       env: { 
         RUNTIME: 'node',
         CACHE_DIR: cachePath
