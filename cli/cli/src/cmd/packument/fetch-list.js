@@ -12,10 +12,18 @@ export const command = async cli => {
 
   console.log(`Fetching ${length} packuments from ${filename}`);
 
+  // Create environment for storage driver
+  const env = {
+    RUNTIME: 'node',
+    CACHE_DIR: cli.dir('packuments'),
+    NPM_REGISTRY: cli.values.registry
+  };
+
   const client = new PackumentClient({
     origin: cli.values.registry,
     limit: cli.values.limit,
-    dryRun: cli.values.dryRun
+    dryRun: cli.values.dryRun,
+    env
   });
 
   let fetched = 0;
@@ -23,7 +31,7 @@ export const command = async cli => {
     const prefix = `Fetch packument | ${name}`;
 
     console.log(prefix);
-    await client.request(new URL(name, cli.values.registry));
+    await client.request(name);
     fetched += 1;
     console.log(`${prefix} | ok | ${((fetched / length) * 100).toFixed(2)}%`);
   }, { concurrency: 10 });

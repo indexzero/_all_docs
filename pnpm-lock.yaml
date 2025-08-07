@@ -84,6 +84,9 @@ importers:
       '@_all_docs/partition':
         specifier: workspace:*
         version: link:../../src/partition
+      '@_all_docs/worker':
+        specifier: workspace:*
+        version: link:../../workers/worker
       '@vltpkg/error-cause':
         specifier: 0.0.0-9
         version: 0.0.0-9
