@@ -3,13 +3,23 @@ import process from 'node:process';
 import { PartitionSet } from '@_all_docs/partition';
 import pMap from 'p-map';
 import { Cache } from '@_all_docs/cache';
+import { createStorageDriver } from '@_all_docs/worker';
 
 export const command = async cli => {
   // TODO: this should be --pivots and not in the splat
   const { pivots } = await import(resolve(process.cwd(), cli.values.pivots));
   const partitions = PartitionSet.fromPivots(cli.values.origin, pivots);
 
-  const cache = new Cache({ path: cli.dir('partitions') });
+  // Create environment for storage driver
+  const env = {
+    RUNTIME: 'node',
+    CACHE_DIR: cli.dir('partitions')
+  };
+
+  // Create storage driver
+  const driver = await createStorageDriver(env);
+  
+  const cache = new Cache({ path: cli.dir('partitions'), driver });
 
   const result = await pMap(partitions, async partition => {
     const entry = await cache.fetch(partition.key);

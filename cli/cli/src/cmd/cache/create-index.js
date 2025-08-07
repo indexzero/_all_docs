@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import process from 'node:process';
 import { PartitionFrame } from '@_all_docs/frame';
+import { createStorageDriver } from '@_all_docs/worker';
 
 /**
  * Converts an entry object to a tuple.
@@ -16,22 +17,25 @@ function entryToTuple({ id, key, value }) {
  * @param {{ partitions: Partition[], cacheDir: string, format?: string }} params
  * @returns {Promise<void>}
  */
-async function createRevIndex({ source, format }) {
+async function createRevIndex({ source, format, env }) {
   // Remark (0): should this be a static method on PartitionFrame? Probably.
 
+  // Create storage driver for the cache
+  const driver = await createStorageDriver(env);
+
   // TODO (0): display progress as it is being created
-  const index = PartitionFrame.fromCache(source)
-    .reduce((acc, partition) => {
-      const { rows } = partition;
+  const frame = PartitionFrame.fromCache(source, driver);
+  const index = await frame.reduceAsync((acc, partition) => {
+    const { rows } = partition;
 
-      const addToIndex = format === 'append-only'
-        ? rows.map(entryToTuple)
-        : rows;
+    const addToIndex = format === 'append-only'
+      ? rows.map(entryToTuple)
+      : rows;
 
-      // eslint-disable-next-line prefer-spread
-      acc.push.apply(acc, addToIndex);
-      return acc;
-    }, []);
+    // eslint-disable-next-line prefer-spread
+    acc.push.apply(acc, addToIndex);
+    return acc;
+  }, []);
 
   return format === 'append-only'
     ? index.map(([_id, _rev]) => `${_id},${_rev}`).join('\n')
@@ -46,7 +50,13 @@ export const command = async cli => {
     ? '.rev.index.json'
     : '.rev.index';
 
-  const index = await createRevIndex({ source, format });
+  // Create environment for storage driver
+  const env = {
+    RUNTIME: 'node',
+    CACHE_DIR: source
+  };
+
+  const index = await createRevIndex({ source, format, env });
   const _fullpath = join(source, filename);
 
   process.stdout.write(index);
