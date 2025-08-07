@@ -17,7 +17,7 @@ describe('End-to-End Integration Tests', () => {
 
   beforeEach(() => {
     env = {
-      NPM_ORIGIN: 'https://registry.npmjs.org',
+      NPM_ORIGIN: 'https://replicate.npmjs.com',
       RUNTIME: 'node',
       CACHE_DIR: fixturesPath,
       DEBUG: true
