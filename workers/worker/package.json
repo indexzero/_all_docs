@@ -5,7 +5,9 @@
   "exports": {
     ".": "./index.js",
     "./app": "./app.js",
-    "./processors": "./processors/index.js"
+    "./processors": "./processors/index.js",
+    "./processor": "./processor.js",
+    "./interfaces": "./interfaces.js"
   },
   "dependencies": {
     "hono": "^4.0.0"
@@ -19,9 +21,7 @@
     "@_all_docs/partition": "workspace:*",
     "@_all_docs/packument": "workspace:*",
     "@_all_docs/cache": "workspace:*",
-    "@_all_docs/types": "workspace:*",
-    "@_all_docs/queue": "workspace:*",
-    "@_all_docs/storage": "workspace:*"
+    "@_all_docs/types": "workspace:*"
   },
   "scripts": {
     "test": "node --test test/*.test.js",

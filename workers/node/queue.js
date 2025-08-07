@@ -14,8 +14,8 @@ export class LocalWorkQueue {
   }
 
   /**
-   * @param {WorkItem} workItem
-   * @returns {Promise<WorkResult>}
+   * @param {import('@_all_docs/worker/interfaces').WorkItem} workItem
+   * @returns {Promise<import('@_all_docs/worker/interfaces').ProcessorResult>}
    */
   async addWork(workItem) {
     return this.queue.add(async () => {
@@ -42,4 +42,25 @@ export class LocalWorkQueue {
     const workers = Array.from(this.workers.values());
     return workers[Math.floor(Math.random() * workers.length)];
   }
+
+  // Methods to match the Queue interface
+  async enqueue(item) {
+    return this.addWork(item);
+  }
+
+  process(processor) {
+    // Register the processor with the queue
+    this.workers.set('main', {
+      process: processor
+    });
+  }
+
+  async size() {
+    return this.queue.size;
+  }
+}
+
+// Export factory function
+export function createQueue(options) {
+  return new LocalWorkQueue(options);
 }
