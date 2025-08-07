@@ -31,7 +31,9 @@ describe('processPartition', () => {
   let env;
 
   beforeEach(() => {
-    env = createMockEnv();
+    env = createMockEnv({
+      NPM_ORIGIN: 'https://replicate.npmjs.com'
+    });
   });
 
   it.skip('should process partition successfully', async () => {
