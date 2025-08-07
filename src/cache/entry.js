@@ -17,9 +17,17 @@ export class CacheEntry {
   normalizeHeaders(headers) {
     const normalized = {};
     if (headers) {
-      Object.entries(headers).forEach(([key, value]) => {
-        normalized[key.toLowerCase()] = value;
-      });
+      // Handle Headers object from fetch API
+      if (headers instanceof Headers) {
+        headers.forEach((value, key) => {
+          normalized[key.toLowerCase()] = value;
+        });
+      } else {
+        // Handle plain object
+        Object.entries(headers).forEach(([key, value]) => {
+          normalized[key.toLowerCase()] = value;
+        });
+      }
     }
     return normalized;
   }
@@ -60,15 +68,22 @@ export class CacheEntry {
   get valid() {
     // Check cache validity based on cache-control headers
     const cacheControl = this.headers['cache-control'];
-    const age = parseInt(this.headers['age'] || '0', 10);
     const maxAge = this.extractMaxAge(cacheControl);
     
-    if (maxAge && age < maxAge) {
-      return true;
+    if (maxAge) {
+      // Calculate age based on timestamp
+      const ageInSeconds = Math.floor((Date.now() - this.timestamp) / 1000);
+      if (ageInSeconds < maxAge) {
+        return true;
+      }
     }
     
     // Check if we have an etag for conditional requests
-    return !!this.etag;
+    const hasEtag = !!this.etag;
+    if (!maxAge && !hasEtag) {
+      console.log('Cache validity check - no max-age or etag. Headers:', this.headers);
+    }
+    return hasEtag;
   }
 
   get etag() {
