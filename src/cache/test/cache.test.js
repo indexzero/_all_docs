@@ -162,14 +162,14 @@ describe('Cache', () => {
       }
 
       const found = [];
-      for await (const entry of cache) {
-        found.push(entry);
+      for await (const [key, value] of cache) {
+        found.push([key, value]);
       }
 
       assert.equal(found.length, 3);
-      found.forEach(entry => {
-        assert.ok(entry.key);
-        assert.ok(entry.value);
+      found.forEach(([key, value]) => {
+        assert.ok(key);
+        assert.ok(value);
       });
     });
   });
@@ -197,9 +197,9 @@ describe('Cache', () => {
       await cache.set('transform2', { value: 20 });
 
       const doubled = [];
-      for await (const entry of cache.map(e => ({
-        key: e.key,
-        doubled: e.value.value * 2
+      for await (const entry of cache.map(([key, value]) => ({
+        key,
+        doubled: value.value * 2
       }))) {
         doubled.push(entry);
       }
