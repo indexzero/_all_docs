@@ -1,0 +1,22 @@
+{
+  "name": "@_all_docs/worker-fastly",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./storage": "./storage.js",
+    "./queue": "./queue.js"
+  },
+  "dependencies": {
+    "@_all_docs/worker": "workspace:*",
+    "@_all_docs/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@fastly/js-compute": "^3.0.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "build": "fastly compute build",
+    "deploy": "fastly compute deploy"
+  }
+}

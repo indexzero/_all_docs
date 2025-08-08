@@ -136,8 +136,10 @@ dist
 .env
 
 # Test fixtures & scratchpads
-test/fixtures/*
+test/fixtures/**
+**/test/fixtures/**
 !test/fixtures/.gitkeep
+!**/test/fixtures/.gitkeep
 scratch*
 
 # Script output

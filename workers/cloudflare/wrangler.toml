@@ -1,0 +1,31 @@
+name = "all-docs-worker"
+main = "./index.js"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat_v2"]
+
+# Build configuration
+[build]
+command = "npm run build"
+
+# Development environment
+[env.development]
+vars = { NPM_ORIGIN = "https://replicate.npmjs.com" }
+
+# Production environment
+[env.production]
+vars = { NPM_ORIGIN = "https://replicate.npmjs.com" }
+
+# KV namespace bindings (example - replace with your actual namespace IDs)
+# [[env.production.kv_namespaces]]
+# binding = "CACHE_KV"
+# id = "your-kv-namespace-id"
+
+# Durable Object bindings
+[[durable_objects.bindings]]
+name = "QUEUE_DO"
+class_name = "QueueDurableObject"
+
+# Durable Object migrations
+[[migrations]]
+tag = "v1"
+new_classes = ["QueueDurableObject"]

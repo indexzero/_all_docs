@@ -6,9 +6,20 @@ export const command = async cli => {
   const { pivots } = await import(resolve(process.cwd(), cli.values.pivots));
   const partitions = PartitionSet.fromPivots(cli.values.origin, pivots);
 
+  // Create environment for storage driver
+  const env = {
+    RUNTIME: 'node',
+    CACHE_DIR: cli.dir('partitions'),
+    NPM_ORIGIN: cli.values.origin
+  };
+
   const client = new PartitionClient({
-    origin: cli.values.origin
+    origin: cli.values.origin,
+    env
   });
+
+  // Initialize the client to ensure storage driver is ready
+  await client.initializeAsync(env);
 
   await requestAll(partitions, {
     client,

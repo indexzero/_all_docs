@@ -3,9 +3,19 @@ import { writeFileSync } from 'node:fs';
 import process from 'node:process';
 import { Cache } from '@_all_docs/cache';
 import { Packument } from '@_all_docs/packument';
+import { createStorageDriver } from '@_all_docs/worker';
 
 export const command = async cli => {
-  const cache = new Cache({ path: cli.dir('packuments') });
+  // Create environment for storage driver
+  const env = {
+    RUNTIME: 'node',
+    CACHE_DIR: cli.dir('packuments')
+  };
+
+  // Create storage driver
+  const driver = await createStorageDriver(env);
+  
+  const cache = new Cache({ path: cli.dir('packuments'), driver });
 
   const [namesPath, outPath] = cli._;
   if (!namesPath) {
@@ -27,12 +37,12 @@ export const command = async cli => {
     return;
   }
 
-  names.forEach(name => {
+  for (const name of names) {
     const key = Packument.cacheKey(name, cli.values.registry);
-    const val = cache.fetchSync(key);
+    const val = await cache.fetch(key);
     if (!val) {
       console.error(`Packument ${name} not found in cache`);
-      return null;
+      continue;
     }
 
     const pku = Packument.fromCacheEntry([key, val]);
@@ -40,6 +50,6 @@ export const command = async cli => {
     const fullpath = join(outDir, filename);
     writeFileSync(fullpath, JSON.stringify(pku.contents, null, 2));
     console.log(`Wrote ${filename} to ${outDir}`);
-  });
+  }
 };
 

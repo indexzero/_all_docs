@@ -10,7 +10,10 @@ describe('_all_docs/client', () => {
   it('.request({ 8, 9 }) returns a valid cache entry', async () => {
     const client = new PartitionClient({
       origin: 'https://replicate.npmjs.com',
-      cache: fixtures
+      env: { 
+        RUNTIME: 'node',
+        CACHE_DIR: fixtures
+      }
     });
 
     const entry = await client.request({
@@ -31,7 +34,10 @@ describe('_all_docs/client', () => {
   it('.request({ 7, 8 }) returns a cache entry', async () => {
     const client = new PartitionClient({
       origin: 'https://replicate.npmjs.com',
-      cache: fixtures
+      env: { 
+        RUNTIME: 'node',
+        CACHE_DIR: fixtures
+      }
     });
 
     const entry = await client.request({
@@ -49,7 +55,10 @@ describe('_all_docs/client', () => {
   it('.requestAll([...rest]) returns cache entries', async () => {
     const client = new PartitionClient({
       origin: 'https://replicate.npmjs.com',
-      cache: fixtures
+      env: { 
+        RUNTIME: 'node',
+        CACHE_DIR: fixtures
+      }
     });
 
     const entries = await client.requestAll([
