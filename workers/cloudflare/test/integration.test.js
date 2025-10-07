@@ -8,15 +8,15 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 describe('Cloudflare Worker Integration', () => {
   let mf;
-  
+
   beforeEach(async () => {
     // Create Miniflare instance with KV namespace for cache
     mf = new Miniflare({
       modules: true,
-      scriptPath: join(__dirname, '../index.js'),
+      scriptPath: join(__dirname, '../dist/test-bundle.js'),
       kvNamespaces: ['CACHE_KV'],
       durableObjects: {
-        QUEUE_DO: join(__dirname, '../queue.js')
+        QUEUE_DO: 'QueueDurableObject'
       },
       bindings: {
         NPM_ORIGIN: 'https://replicate.npmjs.com',
