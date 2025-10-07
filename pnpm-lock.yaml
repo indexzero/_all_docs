@@ -83,7 +83,7 @@ importers:
         version: link:../../src/packument
       '@_all_docs/partition':
         specifier: workspace:*
-        version: link:../../src/partition
+        version: link:../../src/pivots
       '@_all_docs/worker':
         specifier: workspace:*
         version: link:../../workers/worker
@@ -110,7 +110,7 @@ importers:
         version: link:../src/packument
       '@_all_docs/partition':
         specifier: workspace:*
-        version: link:../src/partition
+        version: link:../src/pivots
       '@_all_docs/types':
         specifier: workspace:*
         version: link:../src/types
@@ -155,7 +155,7 @@ importers:
         version: link:../packument
       '@_all_docs/partition':
         specifier: workspace:*
-        version: link:../partition
+        version: link:../pivots
       p-map:
         specifier: 'catalog:'
         version: 7.0.3
@@ -194,6 +194,8 @@ importers:
         specifier: ^6.0.1
         version: 6.0.1
 
+  src/pivots: {}
+
   src/types: {}
 
   workers/cloudflare:
@@ -205,6 +207,9 @@ importers:
         specifier: workspace:*
         version: link:../worker
     devDependencies:
+      esbuild:
+        specifier: ^0.24.0
+        version: 0.24.2
       miniflare:
         specifier: ^3.0.0
         version: 3.20250718.0
@@ -275,7 +280,7 @@ importers:
         version: link:../../src/packument
       '@_all_docs/partition':
         specifier: workspace:*
-        version: link:../../src/partition
+        version: link:../../src/pivots
       '@_all_docs/types':
         specifier: workspace:*
         version: link:../../src/types
