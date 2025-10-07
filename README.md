@@ -2,71 +2,129 @@
 
 > Stability: NaN – `Array(16).join("wat" - 1) + " Batman!"`
 
-Fetch & cache :origin/_all_docs using a set of lexographically sorted keys
+Fetch & cache :origin/_all_docs using a set of lexographically sorted keys. High-performance, partition-tolerant system for fetching and caching npm registry data at scale
 
+**[Quick Start](#quick-start)**
+·
 **[Features](#features)**
 ·
-**[How It Works](#how-it-works)**
+**[Documentation](#documentation)**
 ·
-**[Thanks](#thanks)**
+**[Architecture](#architecture)**
+·
+**[Contributing](#contributing)**
+
+## Quick Start
+
+```bash
+# Install the CLI globally
+npm install -g @_all_docs/cli
+
+# Fetch npm registry partitions
+npx _all_docs partition refresh --pivots ./pivots.js
+
+# Fetch package documents
+npx _all_docs packument fetch express
+```
 
 ## Features
 
-* 🛋️ Relax! Use the `start_key` and `end_key` CouchDB APIs to harness the power of partition-tolerance from the b-tree
-* 🔑 Accepts a set of lexographically sorted pivots to use as B-tree partitions
-* 🦿 Run map-reduce operations on `_all_docs` and `packument` entries by key range or cache partition
-* 🔜 ~🕸️⚡️🐢🦎🦀 Lightning fast partition-tolerant edge read-replica for `cache-control: immutable` "Pouch-like" `[{ _id, _rev, ...doc }*]` JSON documents out of the box!~
+### 🚀 Massive Scale Performance
+- Process npm's 3.4M+ packages efficiently using B-tree partitioning
+- Parallel processing across multiple edge runtimes
+- Intelligent caching with partition tolerance
+
+### 🌐 Multi-Runtime Support
+- **Node.js** - Traditional server deployment with cacache storage
+- **Cloudflare Workers** - Global edge deployment with KV storage
+- **Fastly Compute@Edge** - Edge computing with Dictionary storage
+- **Google Cloud Run** - Containerized deployment with Cloud Storage
+
+### 🛋️ Smart Partitioning
+- Lexicographically sorted pivots create manageable data chunks
+- CouchDB-style `start_key`/`end_key` API for B-tree operations
+- Checkpoint system tracks processing progress across partition sets
+
+### ⚡ Edge-Ready Architecture
+- Runtime-centric design with minimal bundle sizes (30-50KB)
+- Cross-platform cache key format works everywhere
+- Pluggable storage drivers for different backends
 
 ## Usage
 
-```sh
-pnpm install @_all_docs/cache
-```
+### Create Partition Pivots
 
-> 🐲 🐉 Here. Be. Dragons
-> 🤯 Letting the interface(s) reveal themselves for now. No official interface
-> 🤖 `_all_docs_*` bin scripts for `npx` included below
-
-### 1️⃣ Fetch _all_docs by partitions created from pivots
-``` sh
-DEBUG=_all_docs* PIVOTS=a.string.array.js npx _all_docs_from_origin
-
-# Inspect partitions fetched to _all_docs cache
-ls -al cache/*__*.json
-```
-
-_**a.string.array.js (naive)**_
-```js
+```javascript
+// pivots.js
 module.exports = [
-  null,
-  ...numbers,
-  ...atoz
+  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+  'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
+  'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
+  'u', 'v', 'w', 'x', 'y', 'z'
 ];
 ```
 
-### 2️⃣ Fetch packuments for a cached `_all_docs` partition
+### Fetch Registry Data (from CLI)
 
-```sh
-DEBUG=_all_docs* npx _all_docs_partipacku A___Z
+```bash
+# Refresh all partitions
+npx _all_docs partition refresh --pivots ./pivots.js
+
+# Fetch specific packages
+npx _all_docs packument fetch express react vue
+
+# Create cache index
+npx _all_docs cache create-index > index.txt
 ```
 
-## How it works
+### Fetch Registry Data (from code)
 
-### 1️⃣ Fetch `_all_docs` for pivots
+```javascript
+import { PartitionClient } from '@_all_docs/partition';
+import { PackumentClient } from '@_all_docs/packument';
 
-1. 📍 Provide `npm` origin, lexographic pivots, & location for existing cache (if any)
-2. ⚡️ Create `[{ start_key, end_key, id, filename }]` partition ranges from lexographic pivots
-3. 🏃‍♀️ For each `[start_key, end_key]` partition:
-   * 🗄️ Attempt to read `${start_key}___${end_key}.json` from local disk cache
-      * ✅ Set `max-age=${now-last.now}`s to HTTP `headers` for the outbound `undici` options.
-   * ⬇️ `GET :npm-origin/_all_docs?start_key={start_key}&end_key={end_key}&include_docs=false`
-4. 👀 Validate the HTTP response:
-   * ✅ `304 Not Modified` Local Cache Valid. No update necessary
-   * 📝 `200 OK` Update cache contents for `${start_key}___${end_key}.json` partition
+// Fetch partition data
+const partitionClient = new PartitionClient({
+  env: { RUNTIME: 'node', CACHE_DIR: './cache' }
+});
 
-### 2️⃣ Fetch packuments for `_all_docs` partition
+const partition = await partitionClient.request({
+  startKey: 'express',
+  endKey: 'express-z'
+});
 
-> 🔜
+// Fetch package document
+const packumentClient = new PackumentClient({
+  env: { RUNTIME: 'node', CACHE_DIR: './cache' }
+});
+
+const packument = await packumentClient.request('express');
+```
+
+## 📚 More Documentation
+- [Getting Started Guide](./doc/getting-started.md) - Quick tutorial and common use cases
+- [Architecture Overview](./doc/architecture.md) - System design and technical details
+- [CLI Reference](./doc/cli-reference.md) - Complete command documentation
+- [API Reference](./doc/api.md) - Programmatic usage and package APIs
+
+## Development Setup
+
+```bash
+# Clone and install
+git clone https://github.com/indexzero/_all_docs.git
+cd _all_docs
+pnpm install
+
+# Run tests
+pnpm test
+
+# Start development worker
+pnpm dev
+```
+
+## License
+
+Apache-2.0 © 2024 Charlie Robbins
 
 ## Thanks
 
