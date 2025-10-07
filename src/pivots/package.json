@@ -1,0 +1,12 @@
+{
+  "name": "@_all_docs/partition",
+  "version": "0.1.0",
+  "description": "Default pivots from which _all_docs partitions are derived",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/indexzero/_all_docs.git",
+    "directory": "src/partition"
+  },
+  "author": "Charlie Robbins <npm@charlie.dev>",
+  "license": "Apache-2.0"
+}
