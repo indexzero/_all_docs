@@ -1,7 +1,7 @@
 {
   "name": "@_all_docs/partition",
-  "version": "0.2.0",
-  "description": "Additional operations for working with _all_docs partitions",
+  "version": "0.1.0",
+  "description": "Default pivots from which _all_docs partitions are derived",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/indexzero/_all_docs.git",
