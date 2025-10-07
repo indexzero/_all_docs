@@ -1,9 +1,8 @@
 import { resolve } from 'node:path';
 import debuglog from 'debug';
 import pMap from 'p-map';
-import { BaseHTTPClient, createDispatcher, Cache, CacheEntry, createPartitionKey } from '@_all_docs/cache';
-import { createStorageDriver } from '@_all_docs/worker';
-import { Partition } from './index.js';
+import { BaseHTTPClient, createDispatcher, Cache, CacheEntry, createPartitionKey, createStorageDriver } from '@_all_docs/cache';
+import { Partition } from './partition.js';
 
 const debug = debuglog('_all_docs:partition:client');
 

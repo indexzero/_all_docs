@@ -1,8 +1,7 @@
 import { resolve } from 'node:path';
 import debuglog from 'debug';
 import pMap from 'p-map';
-import { BaseHTTPClient, createDispatcher, Cache, CacheEntry, createPackumentKey } from '@_all_docs/cache';
-import { createStorageDriver } from '@_all_docs/worker';
+import { BaseHTTPClient, createDispatcher, Cache, CacheEntry, createPackumentKey, createStorageDriver } from '@_all_docs/cache';
 
 const debug = debuglog('_all_docs:packument:client');
 

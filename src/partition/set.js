@@ -1,4 +1,4 @@
-import { Partition } from './index.js';
+import { Partition } from './partition.js';
 
 export class PartitionSet {
   #map = new Map();
