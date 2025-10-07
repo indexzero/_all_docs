@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import process from 'node:process';
 import { PartitionFrame } from '@_all_docs/frame';
-import { createStorageDriver } from '@_all_docs/worker';
+import { createStorageDriver } from '@_all_docs/cache';
 
 /**
  * Converts an entry object to a tuple.
