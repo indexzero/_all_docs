@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@_all_docs/cache": "workspace:*",
-    "@_all_docs/worker": "workspace:*",
     "debug": "^4.4.1",
     "p-map": "catalog:"
   },
