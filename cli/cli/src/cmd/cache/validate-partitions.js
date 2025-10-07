@@ -2,8 +2,7 @@ import { resolve } from 'node:path';
 import process from 'node:process';
 import { PartitionSet } from '@_all_docs/partition';
 import pMap from 'p-map';
-import { Cache } from '@_all_docs/cache';
-import { createStorageDriver } from '@_all_docs/worker';
+import { Cache, createStorageDriver } from '@_all_docs/cache';
 
 export const command = async cli => {
   // TODO: this should be --pivots and not in the splat

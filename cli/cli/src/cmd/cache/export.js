@@ -1,9 +1,8 @@
 import { join, resolve } from 'node:path';
 import { writeFileSync } from 'node:fs';
 import process from 'node:process';
-import { Cache } from '@_all_docs/cache';
+import { Cache, createStorageDriver } from '@_all_docs/cache';
 import { Packument } from '@_all_docs/packument';
-import { createStorageDriver } from '@_all_docs/worker';
 
 export const command = async cli => {
   // Create environment for storage driver
