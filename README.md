@@ -29,26 +29,12 @@ npx _all_docs packument fetch express
 
 ## Features
 
-### 🚀 Massive Scale Performance
-- Process npm's 3.4M+ packages efficiently using B-tree partitioning
-- Parallel processing across multiple edge runtimes
-- Intelligent caching with partition tolerance
-
-### 🌐 Multi-Runtime Support
-- **Node.js** - Traditional server deployment with cacache storage
-- **Cloudflare Workers** - Global edge deployment with KV storage
-- **Fastly Compute@Edge** - Edge computing with Dictionary storage
-- **Google Cloud Run** - Containerized deployment with Cloud Storage
-
-### 🛋️ Smart Partitioning
-- Lexicographically sorted pivots create manageable data chunks
-- CouchDB-style `start_key`/`end_key` API for B-tree operations
-- Checkpoint system tracks processing progress across partition sets
-
-### ⚡ Edge-Ready Architecture
-- Runtime-centric design with minimal bundle sizes (30-50KB)
-- Cross-platform cache key format works everywhere
-- Pluggable storage drivers for different backends
+* 🛋️ Relax! Use the `start_key` and `end_key` CouchDB APIs to harness the power of partition-tolerance from the b-tree
+* 🔑 Accepts a set of lexographically sorted pivots to use as B-tree partitions
+* 🦿 Run map-reduce operations on `_all_docs` and `packument` entries by key range or cache partition
+* 🏁 Checkpoint system tracks processing progress across partition sets
+* ☁️ Parallel processing across multiple edge runtimes
+* 🔜 ~🕸️⚡️🐢🦎🦀 Lightning fast partition-tolerant edge read-replica for `cache-control: immutable` "Pouch-like" `[{ _id, _rev, ...doc }*]` JSON documents out of the box!~
 
 ## Usage
 
