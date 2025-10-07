@@ -302,7 +302,6 @@ npx _all_docs partition fetch --start-key "prob" --end-key "proc"
 
 - Read the [Architecture Guide](./architecture.md) to understand the system design
 - Check the [CLI Reference](./cli-reference.md) for all available commands
-- See [Deployment Guide](./deployment.md) for running in production
 - Review the [API Documentation](./api.md) for programmatic usage
 
 ## Getting Help

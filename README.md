@@ -1,4 +1,4 @@
-# @_all_docs/cache
+# @_all_docs
 
 > Stability: NaN – `Array(16).join("wat" - 1) + " Batman!"`
 
@@ -8,7 +8,7 @@ Fetch & cache :origin/_all_docs using a set of lexographically sorted keys. High
 ·
 **[Features](#features)**
 ·
-**[Documentation](#documentation)**
+**[Documentation](#-more-documentation)**
 ·
 **[Architecture](#architecture)**
 ·
