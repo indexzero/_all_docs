@@ -241,7 +241,7 @@ describe('End-to-End Integration Tests', () => {
       await packumentClient.request('react');
 
       // Verify cache keys are properly formatted
-      const { createStorageDriver } = await import('@_all_docs/worker');
+      const { createStorageDriver } = await import('@_all_docs/cache');
       const driver = await createStorageDriver(env);
       const cache = new Cache({ 
         path: join(fixturesPath, 'partitions'), 
@@ -310,7 +310,7 @@ describe('End-to-End Integration Tests', () => {
 
   describe('Performance Considerations', () => {
     it('should coalesce concurrent cache requests', async () => {
-      const { createStorageDriver } = await import('@_all_docs/worker');
+      const { createStorageDriver } = await import('@_all_docs/cache');
       const driver = await createStorageDriver(env);
       const cache = new Cache({ 
         path: join(fixturesPath, 'perf-test'), 
