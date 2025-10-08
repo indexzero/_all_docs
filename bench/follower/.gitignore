@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Data storage
+data/changes/*.jsonl
+data/changes/*.jsonl.gz
+data/changes/*.jsonl.xz
+data/checkpoints/*.json
+data/metrics/*.json
+
+# Logs
+logs/*.log
+
+# Local config (contains user preferences)
+# config.local.js  # Uncomment if you want to ignore local config
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.swp
+*.bak
+
+# Environment
+.env
+.env.local
