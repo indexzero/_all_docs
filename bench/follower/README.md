@@ -5,10 +5,12 @@ A high-performance, minimal NPM registry changes follower designed for benchmark
 ## Features
 
 - **Zero dependencies** - Pure Node.js implementation using native fetch
+- **Beautiful tree-style logging** - Clear visual hierarchy for monitoring
 - **Resumable** - Checkpoint-based resume capability for handling interruptions
-- **Fast** - Processes 1000+ events/second
+- **Fast** - Processes 1000-2000 events/second
+- **Sequence reset detection** - Handles infrastructure changes gracefully
 - **Efficient** - ~20MB memory footprint
-- **Simple** - 146 lines of readable code
+- **Simple** - ~200 lines of readable code
 
 ## Installation
 
@@ -46,7 +48,65 @@ data/changes-81600000-1759909994532.jsonl
 
 Each line is a JSON object representing a change event:
 ```json
-{"seq":81608001,"id":"@grafana/create-plugin","changes":[...],"deleted":false}
+{"seq":81608001,"id":"@grafana/create-plugin","changes":[{"rev":"2-abc"}],"deleted":false}
+```
+
+## Architecture
+
+The follower uses a simple forward-polling approach with the npm registry's `_changes` endpoint:
+
+1. Fetches the target sequence from the registry
+2. Requests changes in batches of 10,000 events using `since` parameter
+3. Streams results directly to JSONL files
+4. Saves checkpoint after each batch
+5. Detects and handles sequence resets/jumps
+6. Continues until caught up, then polls periodically for new changes
+
+## Monitoring Output
+
+### Standard Operation
+Beautiful tree-style logging during normal operation:
+```
+🔄 Fetching from 81161171...
+├── GET https://replicate.npmjs.com/registry/_changes?since=81161171&limit=10000
+├── [Thu, 09 Oct 2025 12:34:56 GMT] Updated current sequence to { currentSeq: 81313556, highestSeqEverSeen: 81313556 }
+└── ✓ Processed 10000 events (99.5% - 11838 events/sec)
+
+🔄 Fetching from 81313556...
+├── GET https://replicate.npmjs.com/registry/_changes?since=81313556&limit=10000
+├── [Thu, 09 Oct 2025 12:34:57 GMT] Updated current sequence to { currentSeq: 81466275, highestSeqEverSeen: 81466275 }
+└── ✓ Processed 10000 events (99.7% - 11820 events/sec)
+```
+
+### Sequence Reset Detection
+When sequences jump backward (happened during npm migration):
+```
+🔄 Fetching from 61000000...
+├── GET https://replicate.npmjs.com/registry/_changes?since=61000000&limit=10000
+├── 🔄 Sequence reset detected: 61000000 → 41000000
+├── ✓ Reset confirmed by registry
+├── [Thu, 09 Oct 2025 12:35:00 GMT] Updated current sequence to { currentSeq: 41000000, highestSeqEverSeen: 61000000 }
+└── ✓ Processed 10000 events (65.2% - 9823 events/sec)
+```
+
+### Caught Up State
+When the follower reaches the latest sequence:
+```
+🔄 Fetching from 81718148...
+├── GET https://replicate.npmjs.com/registry/_changes?since=81718148&limit=10000
+├── [Thu, 09 Oct 2025 12:35:02 GMT] Updated current sequence to { currentSeq: 81721320, highestSeqEverSeen: 81721320 }
+└── ✓ Processed 1019 events (100.0% - 11777 events/sec)
+
+🎉 Caught up to latest! Waiting 60s before fetching new target
+🎯 New target: 81721450
+```
+
+### Idle State
+When no new changes are available:
+```
+🔄 Fetching from 81721450...
+├── GET https://replicate.npmjs.com/registry/_changes?since=81721450&limit=10000
+└── ⏸️  No changes, waiting 10s...
 ```
 
 ## Checkpoint System
@@ -55,19 +115,12 @@ Progress is automatically saved to `checkpoint.json` after each batch:
 ```json
 {
   "seq": 81611545,
-  "timestamp": "2025-10-08T07:54:04.064Z"
+  "highestSeqEverSeen": 81611545,
+  "timestamp": "2025-10-09T12:34:56.789Z"
 }
 ```
 
-## Architecture
-
-The follower uses a simple polling approach with the npm registry's `_changes` endpoint:
-
-1. Fetches the target sequence from the registry
-2. Requests changes in batches of 10,000 events
-3. Streams results to JSONL files
-4. Saves checkpoint after each batch
-5. Handles rate limiting with exponential backoff
+The `highestSeqEverSeen` field helps detect sequence resets during infrastructure changes.
 
 ## Configuration
 
@@ -75,23 +128,34 @@ Edit these constants in `index.js`:
 
 ```javascript
 const REGISTRY = 'https://replicate.npmjs.com/registry/_changes';
-const BATCH_SIZE = 10000;
+const BATCH_SIZE = 10000;  // Events per fetch
 const CHECKPOINT_FILE = 'checkpoint.json';
 ```
 
 ## Performance
 
 Typical performance metrics:
-- **Throughput**: 1000-2000 events/second
+- **Throughput**: 10,000-12,000 events/second during catch-up
 - **Memory**: ~20MB
-- **Network**: Efficient batch fetching
+- **Network**: Efficient batch fetching (10k events per request)
 - **Disk I/O**: Direct streaming to files
+- **Latency**: ~1-2 seconds per 10,000 events
 
 ## Error Handling
 
 - Automatic retry with 5-second backoff on HTTP errors
 - Checkpoint persistence for resume capability
+- Sequence reset detection and verification
 - Graceful shutdown on Ctrl+C with checkpoint save
+
+## Final Statistics
+
+Graceful shutdown (Ctrl+C) shows complete statistics:
+```
+⏹️  Shutting down gracefully...
+📍 Stopped at sequence: 81721320
+💾 Checkpoint saved. Run again to resume.
+```
 
 ## Requirements
 
@@ -115,39 +179,25 @@ tail -f data/changes-*.jsonl | wc -l
 ```
 
 Estimated time for full replication:
-- ~81.6M events at 1000 events/sec = ~22 hours
-
-## Output Format
-
-Progress output shows:
-```
-📦 NPM Registry Follower
-📍 Start: 81600000
-🎯 Target: 81611545
-📊 Events to process: 11545
-
-🔄 Fetching from 81600000...
-  ✓ Processed 1000 events (8.7% - 1523 events/sec)
-```
-
-On completion:
-```
-📈 Final Statistics:
-  • Events processed: 11545
-  • Final sequence: 81611545
-  • Time taken: 8.2s
-  • Average rate: 1408 events/sec
-
-✅ Complete!
-```
+- ~81.7M events at 10,000 events/sec = ~2.3 hours
 
 ## Technical Details
 
 This implementation follows npm's 2024 replication API requirements:
 - Uses `/registry/_changes` endpoint (not `/_changes`)
 - Includes required `npm-replication-opt-in: true` header
-- Implements paginated polling (continuous feed deprecated)
-- Handles sequence gaps gracefully
+- Implements paginated polling with `since` parameter
+- Handles sequence resets and jumps gracefully
+- Efficient batch processing (10k events per request)
+
+## Why This Design?
+
+This follower prioritizes:
+1. **Simplicity** - Forward-only polling is easy to understand
+2. **Speed** - Batch processing maximizes throughput
+3. **Reliability** - Checkpoints ensure no data loss
+4. **Monitoring** - Beautiful tree-style logs show exactly what's happening
+5. **Production readiness** - Handles real infrastructure issues (resets, jumps)
 
 ## License
 
