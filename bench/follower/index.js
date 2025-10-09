@@ -6,25 +6,41 @@
  * Efficient streaming follower for npm registry changes
  */
 
-import { createWriteStream, existsSync, readFileSync, writeFileSync } from 'fs';
+import {
+  createWriteStream,
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  mkdirSync
+} from 'fs';
 
 const REGISTRY = 'https://replicate.npmjs.com/registry/_changes';
 const BATCH_SIZE = 10000;
 const CHECKPOINT_FILE = 'checkpoint.json';
 
 // Get starting sequence from args or checkpoint
-let currentSeq = parseInt(process.argv[2] || '0');
+const start = parseInt(process.argv[2] || '0');
+let currentSeq = start;
 let targetSeq = null;
+let highestSeqEverSeen = 0;
+
 let output = null;
-let eventsProcessed = 0;
-const startTime = Date.now();
+
+// let eventsProcessed = 0;
+// const startTime = Date.now();
+let stats = {
+  events: 0,
+  sequenceResets: 0,
+  startTime: Date.now()
+};
 
 // Resume from checkpoint if exists
 if (existsSync(CHECKPOINT_FILE)) {
   try {
     const checkpoint = JSON.parse(readFileSync(CHECKPOINT_FILE, 'utf8'));
     currentSeq = checkpoint.seq || currentSeq;
-    console.log(`✨ Resuming from sequence ${currentSeq}`);
+    console.log(`✨ Resuming from checkpoint: %j`, checkpoint);
+    highestSeqEverSeen = checkpoint.highestSeqEverSeen || checkpoint.seq;
   } catch (e) {
     console.log('⚠️  Bad checkpoint file, starting fresh');
   }
@@ -36,6 +52,7 @@ async function getTarget() {
   const res = await fetch('https://replicate.npmjs.com/', {
     headers: { 'npm-replication-opt-in': 'true' }
   });
+
   if (!res.ok) throw new Error(`Failed to get target: ${res.status}`);
   const data = await res.json();
   return data.update_seq || data.committed_update_seq;
@@ -43,6 +60,7 @@ async function getTarget() {
 
 // Main loop
 async function run() {
+
   targetSeq = await getTarget();
   console.log(`📦 NPM Registry Follower`);
   console.log(`📍 Start: ${currentSeq}`);
@@ -50,15 +68,20 @@ async function run() {
   console.log(`📊 Events to process: ${targetSeq - currentSeq}\n`);
 
   // Open output file
-  const filename = `data/changes-${currentSeq}-${Date.now()}.jsonl`;
+  // Create output directory and file
+  const dataDir = 'data';
+  mkdirSync(dataDir, { recursive: true });
+  const filename = `${dataDir}/changes-${currentSeq}-${Date.now()}.jsonl`;
   output = createWriteStream(filename);
-  console.log(`💾 Writing to: ${filename}\n`);
+  console.log(`💾 Writing to: ${filename}`);
 
-  while (currentSeq < targetSeq) {
+  while (true) {
     const url = `${REGISTRY}?since=${currentSeq}&limit=${BATCH_SIZE}`;
 
     try {
-      console.log(`🔄 Fetching from ${currentSeq}...`);
+      console.log(`\n🔄 Fetching from ${currentSeq}...`);
+      console.log(`├── GET ${url}`);
+
       const res = await fetch(url, {
         headers: { 'npm-replication-opt-in': 'true' }
       });
@@ -73,27 +96,55 @@ async function run() {
       const results = data.results || [];
 
       if (results.length === 0) {
-        console.log('✅ No more changes!');
-        break;
+        console.log('└── ⏸️  No changes, waiting 10s...');
+        await sleep(10000);
+        continue;
       }
 
       // Write changes to file
+      let latestSeq = 0;
       for (const change of results) {
         output.write(JSON.stringify(change) + '\n');
-        currentSeq = change.seq;
-        eventsProcessed++;
+        latestSeq = Math.max(latestSeq, change.seq);
+        stats.events++;
       }
 
-      // Save checkpoint
+      // Detect sequence resets/jumps
+      if (highestSeqEverSeen > 0) {
+        if (latestSeq < highestSeqEverSeen - 1000000) {
+          stats.sequenceResets++;
+          console.warn(`├── 🔄 Sequence reset detected: ${highestSeqEverSeen} → ${latestSeq}`);
+
+          // Verify with registry root
+          const verifyRes = await fetch(`${REGISTRY}/`, {
+            headers: { 'npm-replication-opt-in': 'true' }
+          });
+
+          const verify = await verifyRes.json();
+          if (verify.update_seq === latestSeq) {
+            console.log(`├── ✓ Reset confirmed by registry`);
+            checkpoint.seq = verify.update_seq;
+          }
+        } else if (latestSeq > highestSeqEverSeen + 1000000) {
+          console.warn(`├── 🚀 Massive sequence jump: ${highestSeqEverSeen} → ${latestSeq}`);
+        }
+      }
+      highestSeqEverSeen = Math.max(highestSeqEverSeen, latestSeq);
+
+
+      // Update currentSeq & save checkpoint
+      currentSeq = latestSeq;
+      console.log(`├── Updated current sequence to { currentSeq: ${currentSeq}, highestSeqEverSeen: ${highestSeqEverSeen} }`);
       writeFileSync(CHECKPOINT_FILE, JSON.stringify({
         seq: currentSeq,
+        highestSeqEverSeen,
         timestamp: new Date().toISOString()
       }));
 
       // Progress
-      const progress = ((currentSeq - parseInt(process.argv[2] || '0')) / (targetSeq - parseInt(process.argv[2] || '0')) * 100).toFixed(1);
-      const rate = (eventsProcessed / ((Date.now() - startTime) / 1000)).toFixed(0);
-      console.log(`  ✓ Processed ${results.length} events (${progress}% - ${rate} events/sec)`);
+      const progress = ((currentSeq - start) / (targetSeq - start) * 100).toFixed(1);
+      const rate = (stats.events / ((Date.now() - stats.startTime) / 1000)).toFixed(0);
+      console.log(`└── ✓ Processed ${results.length} events (${progress}% - ${rate} events/sec)`);
 
       // Done?
       if (results.length < BATCH_SIZE) {
@@ -109,9 +160,10 @@ async function run() {
   }
 
   // Final stats
-  const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+  const duration = ((Date.now() - stats.startTime) / 1000).toFixed(1);
   console.log('\n📈 Final Statistics:');
-  console.log(`  • Events processed: ${eventsProcessed}`);
+  console.log(`  • Events processed: ${stats.events}`);
+  console.log(`  • Sequence resets: ${stats.sequenceResets}`);
   console.log(`  • Final sequence: ${currentSeq}`);
   console.log(`  • Time taken: ${duration}s`);
   console.log(`  • Average rate: ${(eventsProcessed / duration).toFixed(0)} events/sec`);
@@ -125,11 +177,12 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // Ctrl+C handler
 process.on('SIGINT', () => {
-  console.log('\n\n⏹️  Stopping...');
+  console.log('\n\n⏹️  Shutting down gracefully...');
   if (output) output.end();
 
   writeFileSync(CHECKPOINT_FILE, JSON.stringify({
     seq: currentSeq,
+    highestSeqEverSeen,
     timestamp: new Date().toISOString()
   }));
 
@@ -137,6 +190,13 @@ process.on('SIGINT', () => {
   console.log(`💾 Checkpoint saved. Run again to resume.`);
   process.exit(0);
 });
+
+// Handle uncaught errors
+process.on('unhandledRejection', (err) => {
+  console.error('💥 Unhandled rejection:', err);
+  throw err; // Crash for now
+});
+
 
 // Start
 run().catch(err => {
