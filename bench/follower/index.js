@@ -131,10 +131,9 @@ async function run() {
       }
       highestSeqEverSeen = Math.max(highestSeqEverSeen, latestSeq);
 
-
       // Update currentSeq & save checkpoint
       currentSeq = latestSeq;
-      console.log(`├── Updated current sequence to { currentSeq: ${currentSeq}, highestSeqEverSeen: ${highestSeqEverSeen} }`);
+      console.log(`├── [${res.headers.get('date')}] Updated current sequence to { currentSeq: ${currentSeq}, highestSeqEverSeen: ${highestSeqEverSeen} }`);
       writeFileSync(CHECKPOINT_FILE, JSON.stringify({
         seq: currentSeq,
         highestSeqEverSeen,
@@ -148,8 +147,10 @@ async function run() {
 
       // Done?
       if (results.length < BATCH_SIZE) {
-        console.log('\n🎉 Caught up to latest!');
-        break;
+        console.log('\n🎉 Caught up to latest! Waiting 60s before fetching new target');
+        await sleep(60000);
+        targetSeq = await getTarget();
+        console.log(`🎯 New target: ${targetSeq}`);
       }
 
     } catch (error) {
@@ -166,7 +167,7 @@ async function run() {
   console.log(`  • Sequence resets: ${stats.sequenceResets}`);
   console.log(`  • Final sequence: ${currentSeq}`);
   console.log(`  • Time taken: ${duration}s`);
-  console.log(`  • Average rate: ${(eventsProcessed / duration).toFixed(0)} events/sec`);
+  console.log(`  • Average rate: ${(stats.events / duration).toFixed(0)} events/sec`);
 
   if (output) output.end();
   console.log('\n✅ Complete!');
