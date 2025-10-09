@@ -156,3 +156,7 @@ cache*/*
 # AI Slopsters
 CLAUDE.md
 .claude
+
+# Benchmark data
+bench/follower/data/
+bench/follower/checkpoint.json

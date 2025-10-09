@@ -1,4 +1,5 @@
 packages:
+  - bench/*
   - cli/*
   - src/*
   - workers/*

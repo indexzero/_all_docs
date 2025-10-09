@@ -1,0 +1,23 @@
+{
+  "name": "@_all_docs/benchmark-follower",
+  "private": true,
+  "version": "1.0.0",
+  "description": "NPM Registry Follower - High-performance benchmarking tool",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "resume": "node index.js",
+    "fresh": "rm -f checkpoint.json data/*.jsonl && node index.js 0",
+    "from": "node index.js"
+  },
+  "keywords": [
+    "npm",
+    "registry",
+    "follower",
+    "replication",
+    "benchmark"
+  ],
+  "author": "Charlie Robbins <npm@charlie.dev>",
+  "license": "Apache-2.0"
+}
