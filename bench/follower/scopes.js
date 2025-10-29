@@ -95,11 +95,13 @@ async function countScopes() {
   console.log('│');
   console.log(`└── Complete in ${duration}s (${scopedPercent}% scoped packages)\n`);
 
-  // Show top 10 scopes
-  console.log('Top 10 scopes by package count:');
-  const top10 = result.slice(0, 11); // Include UNSCOPED + 10 more
-  for (const [scope, count] of top10) {
-    const bar = '█'.repeat(Math.floor(count / 10000));
+  // Show top 100 scoped packages (skip UNSCOPED)
+  console.log('\nTop 100 scopes by package count:');
+  const top100Scoped = result.slice(1, 101);
+  for (const [scope, count] of top100Scoped) {
+    const bar = count < 30_000
+      ? '█'.repeat(Math.floor(count / 100))
+      : 'MAX';
     console.log(`  ${scope.padEnd(30)} ${count.toLocaleString().padStart(10)} ${bar}`);
   }
   console.log();
