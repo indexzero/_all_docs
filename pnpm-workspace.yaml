@@ -4,6 +4,7 @@ packages:
   - src/*
   - workers/*
   - integration
+  - talk
 
 catalog:
   '@vltpkg/cache': 0.0.0-9
