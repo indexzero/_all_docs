@@ -47,6 +47,7 @@ data/changes-81600000-1759909994532.jsonl
 ```
 
 Each line is a JSON object representing a change event:
+
 ```json
 {"seq":81608001,"id":"@grafana/create-plugin","changes":[{"rev":"2-abc"}],"deleted":false}
 ```
@@ -160,7 +161,7 @@ Graceful shutdown (Ctrl+C) shows complete statistics:
 ## Requirements
 
 - Node.js 18+ (for native fetch support)
-- ~100GB disk space for full registry (81M+ events)
+- Necessary disk space for full registry (81M+ events)
 - Stable internet connection
 
 ## Benchmarking
@@ -181,9 +182,81 @@ tail -f data/changes-*.jsonl | wc -l
 Estimated time for full replication:
 - ~81.7M events at 10,000 events/sec = ~2.3 hours
 
+## Data Analysis Scripts
+
+Once you've collected change data, use these scripts to analyze the npm registry:
+
+### Extract All Package Names
+
+The `names.js` script processes all JSONL files and creates a lexographically sorted list of all package names:
+
+```bash
+node names.js
+```
+
+which produces these files:
+
+- `data/names/raw.txt` - All package names extracted from changes, with duplicates
+- `data/names/all.json` - Deduplicated, lexographically sorted JSON array
+
+```
+┌── Extracting npm package names
+├── Extracting package names from JSONL files
+│   ├── Found 5 JSONL files
+│   ├── Processed changes-0-1759987475324.jsonl: 5,680,001 names
+│   └── Extracted 5,806,331 total names to raw.txt
+├── Deduplicating and sorting names
+│   ├── Found 5,705,687 unique names
+│   ├── Removed 100,644 duplicates
+│   └── Wrote 5,705,687 names to all.json
+│
+└── Complete in 13.00s (1.7% deduplication)
+```
+
+### Analyze Scopes
+
+The `scopes.js` script analyzes package names and counts packages by scope:
+
+```bash
+node scopes.js
+```
+
+which produces:
+
+- `data/names/scopes.json` (10MB) - Array of tuples `[["scope", count], ...]` sorted by count
+
+**Format:**
+```json
+[
+  ["UNSCOPED",4365452],
+  ["infinitebrahmanuniverse",33405],
+  ["hyper.fun",30273],
+  ["zalastax",25780],
+  ["types",11299]
+]
+```
+
+**Example output:**
+```
+┌── Analyzing package scopes
+├── Reading names/all.json
+│   └── Loaded 5,705,687 package names
+├── Counting packages by scope
+│   ├── Found 323,557 unique scopes
+│   ├── Unscoped: 4,365,452 packages
+│   └── Scoped: 1,340,235 packages
+│
+└── Complete in 0.99s (23.5% scoped packages)
+
+Top 10 scopes by package count:
+  UNSCOPED                        4,365,452 ████████████...
+  infinitebrahmanuniverse            33,405 ███
+  hyper.fun                          30,273 ███
+```
+
 ## Technical Details
 
-This implementation follows npm's 2024 replication API requirements:
+This implementation follows npm's 2025 replication API requirements:
 - Uses `/registry/_changes` endpoint (not `/_changes`)
 - Includes required `npm-replication-opt-in: true` header
 - Implements paginated polling with `since` parameter
