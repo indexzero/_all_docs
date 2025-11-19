@@ -15,23 +15,34 @@ Authentication can be configured in three ways, with the following precedence:
 Use command-line flags for direct authentication:
 
 ```bash
-# Direct token authentication
+# Bearer token authentication
 _all_docs packument fetch-list pkgs.txt --auth-token="npm_token_here"
 
-# Custom registry with authentication
+# Basic auth (user:pass format)
+_all_docs packument fetch-list pkgs.txt --auth="username:password"
+
+# Custom registry with Bearer token
 _all_docs packument fetch-list pkgs.txt --registry="https://custom.registry.com" --auth-token="token"
+
+# Custom registry with Basic auth
+_all_docs packument fetch-list pkgs.txt --registry="https://custom.registry.com" --auth="user:pass"
 
 # Custom .npmrc location
 _all_docs packument fetch-list pkgs.txt --rcfile="/custom/path/.npmrc"
 ```
+
+**Note**: Bearer token (`--auth-token`) takes precedence over Basic auth (`--auth`) when both are provided.
 
 ### 2. Environment Variables
 
 Set environment variables for authentication:
 
 ```bash
-# NPM_TOKEN (standard npm environment variable)
+# Bearer token (standard npm environment variable)
 export NPM_TOKEN="your_token_here"
+
+# Basic auth (jackspeak auto-maps from CLI flag)
+export _ALL_DOCS_AUTH="username:password"
 
 # npm_config_ style variables (for specific registries)
 export npm_config___registry_npmjs_org___authToken="token_here"
@@ -45,12 +56,22 @@ Configure authentication in your `.npmrc` file (default: `~/.npmrc`):
 # Default registry
 registry=https://registry.npmjs.org
 
-# Authentication tokens
+# Bearer tokens
 //registry.npmjs.org/:_authToken=npm_token_here
 //custom.registry.com/:_authToken=custom_token_here
 
+# Basic auth (base64 encoded user:pass)
+//registry.npmjs.org/:_auth=dXNlcjpwYXNz
+//custom.registry.com/:_auth=YWRtaW46c2VjcmV0
+
 # Alternative format (also supported)
 //registry.npmjs.org:_authToken=npm_token_here
+//registry.npmjs.org:_auth=dXNlcjpwYXNz
+```
+
+**Note**: The `_auth` field must be base64-encoded. To encode credentials:
+```bash
+echo -n "username:password" | base64
 ```
 
 ## Text File Support
@@ -101,16 +122,29 @@ const token = parser.getToken('https://registry.npmjs.org');
 
 ### BaseHTTPClient
 
-The `BaseHTTPClient` class supports Bearer token authentication:
+The `BaseHTTPClient` class supports both Bearer token and Basic authentication:
 
 ```javascript
 import { BaseHTTPClient } from '@_all_docs/cache';
 
-const client = new BaseHTTPClient('https://registry.npmjs.org', {
+// Bearer token authentication
+const bearerClient = new BaseHTTPClient('https://registry.npmjs.org', {
   authToken: 'your_token_here'
 });
+// Adds: Authorization: Bearer your_token_here
 
-// Token is automatically added as: Authorization: Bearer your_token_here
+// Basic authentication
+const basicClient = new BaseHTTPClient('https://registry.npmjs.org', {
+  auth: 'username:password'
+});
+// Adds: Authorization: Basic base64(username:password)
+
+// Both (Bearer takes precedence)
+const client = new BaseHTTPClient('https://registry.npmjs.org', {
+  authToken: 'token',    // This will be used
+  auth: 'user:pass'      // This will be ignored
+});
+
 await client.request('/package-name');
 ```
 

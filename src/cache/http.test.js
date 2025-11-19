@@ -84,6 +84,61 @@ test('BaseHTTPClient Authentication', async (t) => {
     }
   });
 
+  await t.test('includes Basic auth header when auth provided', async () => {
+    const client = new BaseHTTPClient('https://example.com', {
+      auth: 'user:password'
+    });
+
+    // Mock fetch to capture request
+    const originalFetch = globalThis.fetch;
+    let capturedHeaders;
+
+    globalThis.fetch = async (url, options) => {
+      capturedHeaders = options.headers;
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' })
+      });
+    };
+
+    try {
+      await client.request('/test');
+      assert.ok(capturedHeaders);
+      const expectedAuth = `Basic ${Buffer.from('user:password').toString('base64')}`;
+      assert.equal(capturedHeaders.get('authorization'), expectedAuth);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  await t.test('prefers Bearer token over Basic auth', async () => {
+    const client = new BaseHTTPClient('https://example.com', {
+      authToken: 'bearer_token',
+      auth: 'user:password'
+    });
+
+    // Mock fetch to capture request
+    const originalFetch = globalThis.fetch;
+    let capturedHeaders;
+
+    globalThis.fetch = async (url, options) => {
+      capturedHeaders = options.headers;
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' })
+      });
+    };
+
+    try {
+      await client.request('/test');
+      assert.ok(capturedHeaders);
+      // Should use Bearer token, not Basic auth
+      assert.equal(capturedHeaders.get('authorization'), 'Bearer bearer_token');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   await t.test('includes trace header', async () => {
     const client = new BaseHTTPClient('https://example.com', {
       traceHeader: 'x-custom-trace'

@@ -103,6 +103,44 @@ registry=https://custom.registry.com
     assert.equal(parser.getToken('https://custom.registry.com:8080'), 'custom_port_token');
   });
 
+  await t.test('parses Basic auth credentials', () => {
+    const npmrcPath = join(testDir, 'basic-auth.npmrc');
+    // user:pass base64 encoded
+    const base64Auth = Buffer.from('testuser:testpass').toString('base64');
+    const content = `
+//registry.npmjs.org/:_auth=${base64Auth}
+//custom.registry.com/:_auth=${Buffer.from('user2:pass2').toString('base64')}
+`;
+    writeFileSync(npmrcPath, content);
+
+    const parser = new NpmrcParser(npmrcPath);
+
+    // Check auth decoding
+    assert.equal(parser.getAuth('https://registry.npmjs.org'), 'testuser:testpass');
+    assert.equal(parser.getAuth('https://custom.registry.com'), 'user2:pass2');
+    assert.equal(parser.hasAuth(), true);
+  });
+
+  await t.test('handles both authToken and auth fields', () => {
+    const npmrcPath = join(testDir, 'mixed-auth.npmrc');
+    const base64Auth = Buffer.from('basicuser:basicpass').toString('base64');
+    const content = `
+//registry.npmjs.org/:_authToken=bearer_token_123
+//registry.npmjs.org/:_auth=${base64Auth}
+//custom.registry.com/:_authToken=custom_bearer
+`;
+    writeFileSync(npmrcPath, content);
+
+    const parser = new NpmrcParser(npmrcPath);
+
+    // Check both auth types
+    assert.equal(parser.getToken('https://registry.npmjs.org'), 'bearer_token_123');
+    assert.equal(parser.getAuth('https://registry.npmjs.org'), 'basicuser:basicpass');
+    assert.equal(parser.getToken('https://custom.registry.com'), 'custom_bearer');
+    assert.equal(parser.hasTokens(), true);
+    assert.equal(parser.hasAuth(), true);
+  });
+
   await t.test('verifies ini package parsing', () => {
     const npmrcPath = join(testDir, 'ini-test.npmrc');
     const content = `

@@ -17,11 +17,12 @@ export default class Config {
     // Parse .npmrc file synchronously at startup
     this.npmrc = new NpmrcParser(cli.values.rcfile);
 
-    // Determine auth token with precedence:
-    // 1. CLI flag (--auth-token)
-    // 2. Environment variable (NPM_TOKEN or npm_config_//registry/_authToken)
+    // Determine auth credentials with precedence:
+    // 1. CLI flag (--auth-token or --auth)
+    // 2. Environment variable (NPM_TOKEN or npm_config_//registry/_authToken, _ALL_DOCS_AUTH)
     // 3. .npmrc file
     this.authToken = this.#resolveAuthToken();
+    this.auth = this.#resolveAuth();
   }
 
   get(key) {
@@ -76,6 +77,31 @@ export default class Config {
     // 3. Check .npmrc file
     if (this.npmrc.hasTokens()) {
       return this.npmrc.getToken(registry);
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Resolve Basic auth credentials with proper precedence
+   * @returns {string|undefined} Basic auth credentials if found
+   */
+  #resolveAuth() {
+    // 1. Check CLI flag
+    if (this.cli.values.auth) {
+      return this.cli.values.auth;
+    }
+
+    // 2. Check environment variables
+    // _ALL_DOCS_AUTH takes precedence (jackspeak will auto-map this)
+    if (process.env._ALL_DOCS_AUTH) {
+      return process.env._ALL_DOCS_AUTH;
+    }
+
+    // 3. Check .npmrc file for _auth field
+    const registry = this.cli.values.registry || 'https://registry.npmjs.org';
+    if (this.npmrc.hasAuth()) {
+      return this.npmrc.getAuth(registry);
     }
 
     return undefined;

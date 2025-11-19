@@ -65,6 +65,7 @@ export const command = async cli => {
   const client = new PackumentClient({
     origin: registryUrl,
     authToken: cli.authToken,
+    auth: cli.auth,
     limit: cli.values.limit,
     dryRun: cli.values.dryRun,
     env

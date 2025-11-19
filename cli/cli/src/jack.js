@@ -73,12 +73,20 @@ const cli = ack
                     Defaults to https://registry.npmjs.org if not specified.
       `
     },
+    auth: {
+      hint: 'user:pass',
+      description: `Basic authentication credentials in format "user:pass"
+
+                    Used for Basic auth in Authorization header.
+                    WARNING: Visible in process list. Use environment variables or .npmrc instead.
+      `
+    },
     'auth-token': {
       hint: 'token',
-      description: `Authentication token for registry requests
+      description: `Bearer token for registry authentication
 
                     Used as Bearer token in Authorization header.
-                    Takes precedence over NPM_TOKEN env var and .npmrc file.
+                    Takes precedence over Basic auth when both are provided.
       `
     },
     rcfile: {
