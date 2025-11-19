@@ -20,6 +20,7 @@
   },
   "homepage": "https://github.com/indexzero/_all_docs#readme",
   "dependencies": {
-    "@vltpkg/xdg": "catalog:"
+    "@vltpkg/xdg": "catalog:",
+    "ini": "^5.0.0"
   }
 }

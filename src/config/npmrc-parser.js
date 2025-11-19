@@ -1,13 +1,14 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { parse as parseIni } from 'ini';
 
 /**
- * Simple synchronous .npmrc parser
+ * .npmrc parser using the standard ini package
  * Reads and parses .npmrc file once at startup
  */
 export class NpmrcParser {
-  #tokens = new Map();
+  #config = {};
   #registry = 'https://registry.npmjs.org';
 
   /**
@@ -24,45 +25,25 @@ export class NpmrcParser {
   }
 
   /**
-   * Parse .npmrc file synchronously
+   * Parse .npmrc file synchronously using ini package
    * @param {string} path - Path to .npmrc file
    */
   #parse(path) {
-    const content = readFileSync(path, 'utf8');
-    const lines = content.split('\n');
+    try {
+      const content = readFileSync(path, 'utf8');
+      this.#config = parseIni(content);
 
-    for (const line of lines) {
-      const trimmed = line.trim();
-
-      // Skip comments and empty lines
-      if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith(';')) {
-        continue;
+      // Extract registry setting if present
+      if (this.#config.registry) {
+        this.#registry = this.#config.registry;
+        // Ensure trailing slash for compatibility
+        if (!this.#registry.endsWith('/')) {
+          this.#registry = this.#registry + '/';
+        }
       }
-
-      // Parse registry setting
-      if (trimmed.startsWith('registry=')) {
-        this.#registry = trimmed.substring('registry='.length).trim();
-        continue;
-      }
-
-      // Parse auth tokens
-      // Format: //registry.npmjs.org/:_authToken=TOKEN
-      const tokenMatch = trimmed.match(/^\/\/([^/]+)\/:_authToken=(.+)$/);
-      if (tokenMatch) {
-        const [, host, token] = tokenMatch;
-        const registryUrl = `https://${host}`;
-        this.#tokens.set(registryUrl, token.trim());
-        continue;
-      }
-
-      // Also support format without protocol
-      // Format: //registry.npmjs.org:_authToken=TOKEN
-      const altTokenMatch = trimmed.match(/^\/\/([^:]+):_authToken=(.+)$/);
-      if (altTokenMatch) {
-        const [, host, token] = altTokenMatch;
-        const registryUrl = `https://${host}`;
-        this.#tokens.set(registryUrl, token.trim());
-      }
+    } catch (err) {
+      // Log warning but continue with defaults
+      console.warn(`Warning: Failed to parse .npmrc at ${path}:`, err.message);
     }
   }
 
@@ -72,39 +53,56 @@ export class NpmrcParser {
    * @returns {string|undefined} Auth token if found
    */
   getToken(registryUrl) {
-    // Normalize URL by removing trailing slash
-    const normalized = registryUrl.replace(/\/$/, '');
-
-    // Try exact match first
-    if (this.#tokens.has(normalized)) {
-      return this.#tokens.get(normalized);
+    if (!registryUrl) {
+      registryUrl = this.#registry;
     }
 
-    // Try with https:// prefix if not present
-    if (!normalized.startsWith('http')) {
-      const withProtocol = `https://${normalized}`;
-      if (this.#tokens.has(withProtocol)) {
-        return this.#tokens.get(withProtocol);
-      }
-    }
-
-    // Try to match by hostname
+    let host;
     try {
-      const url = new URL(normalized);
-      const hostKey = `https://${url.hostname}`;
-      if (this.#tokens.has(hostKey)) {
-        return this.#tokens.get(hostKey);
-      }
-
-      // Also try with port if present
-      if (url.port) {
-        const hostPortKey = `https://${url.hostname}:${url.port}`;
-        if (this.#tokens.has(hostPortKey)) {
-          return this.#tokens.get(hostPortKey);
-        }
+      // If it looks like a URL, parse it
+      if (registryUrl.includes('://')) {
+        const url = new URL(registryUrl);
+        host = url.host;
+      } else {
+        // Treat it as a hostname/host:port
+        host = registryUrl.replace(/\/$/, ''); // Remove trailing slash if any
       }
     } catch {
-      // Invalid URL, ignore
+      // Invalid URL, try as plain hostname
+      host = registryUrl;
+    }
+
+    // Try different key formats that npm uses
+    // Format 1: //registry.npmjs.org/:_authToken
+    const key1 = `//${host}/:_authToken`;
+    if (this.#config[key1]) {
+      return this.#config[key1];
+    }
+
+    // Format 2: //registry.npmjs.org:_authToken
+    const key2 = `//${host}:_authToken`;
+    if (this.#config[key2]) {
+      return this.#config[key2];
+    }
+
+    // Format 3: //registry.npmjs.org/_authToken (some npm versions)
+    const key3 = `//${host}/_authToken`;
+    if (this.#config[key3]) {
+      return this.#config[key3];
+    }
+
+    // Also try hostname only (without port) if host includes a port
+    if (host.includes(':')) {
+      const hostname = host.split(':')[0];
+      const hostOnly1 = `//${hostname}/:_authToken`;
+      const hostOnly2 = `//${hostname}:_authToken`;
+
+      if (this.#config[hostOnly1]) {
+        return this.#config[hostOnly1];
+      }
+      if (this.#config[hostOnly2]) {
+        return this.#config[hostOnly2];
+      }
     }
 
     return undefined;
@@ -123,6 +121,17 @@ export class NpmrcParser {
    * @returns {boolean} True if tokens exist
    */
   hasTokens() {
-    return this.#tokens.size > 0;
+    // Check for any auth token keys in the config
+    return Object.keys(this.#config).some(key =>
+      key.includes('_authToken') || key.includes('_auth')
+    );
+  }
+
+  /**
+   * Get the raw parsed config (for testing)
+   * @returns {Object} Parsed config object
+   */
+  getRawConfig() {
+    return { ...this.#config };
   }
 }

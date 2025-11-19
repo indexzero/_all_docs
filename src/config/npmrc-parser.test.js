@@ -23,8 +23,8 @@ registry=https://custom.registry.com
 
     const parser = new NpmrcParser(npmrcPath);
 
-    // Check registry
-    assert.equal(parser.getRegistry(), 'https://custom.registry.com');
+    // Check registry (ini parser preserves the value, we add trailing slash)
+    assert.equal(parser.getRegistry(), 'https://custom.registry.com/');
 
     // Check tokens
     assert.equal(parser.getToken('https://registry.npmjs.org'), 'npm_token123');
@@ -101,6 +101,30 @@ registry=https://custom.registry.com
 
     assert.equal(parser.getToken('https://localhost:4873'), 'local_token');
     assert.equal(parser.getToken('https://custom.registry.com:8080'), 'custom_port_token');
+  });
+
+  await t.test('verifies ini package parsing', () => {
+    const npmrcPath = join(testDir, 'ini-test.npmrc');
+    const content = `
+# Test ini parsing
+registry=https://test.registry.com
+//test.registry.com/:_authToken=test_token
+custom-key=custom-value
+@scope:registry=https://scope.registry.com
+`;
+    writeFileSync(npmrcPath, content);
+
+    const parser = new NpmrcParser(npmrcPath);
+    const rawConfig = parser.getRawConfig();
+
+    // Verify ini package correctly parsed the file
+    assert.equal(rawConfig.registry, 'https://test.registry.com');
+    assert.equal(rawConfig['//test.registry.com/:_authToken'], 'test_token');
+    assert.equal(rawConfig['custom-key'], 'custom-value');
+    assert.equal(rawConfig['@scope:registry'], 'https://scope.registry.com');
+
+    // Verify token retrieval works
+    assert.equal(parser.getToken('https://test.registry.com'), 'test_token');
   });
 
   // Cleanup
