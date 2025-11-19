@@ -11,13 +11,14 @@ const debug = debuglog('_all_docs:packument:client');
  */
 export class PackumentClient extends BaseHTTPClient {
   constructor(options = {}) {
-    const { origin = 'https://registry.npmjs.org', env } = options;
-    
+    const { origin = 'https://registry.npmjs.org', env, authToken } = options;
+
     // Initialize base client with undici-style options
     super(origin, {
       requestTimeout: 600_000,
       traceHeader: 'x-all-docs-trace',
-      userAgent: '_all_docs/0.1.0'
+      userAgent: '_all_docs/0.1.0',
+      authToken // Pass auth token to base client
     });
     
     // Set up cache options

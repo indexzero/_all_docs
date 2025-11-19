@@ -72,6 +72,28 @@ const cli = ack
                     For example, \`GET /winston\`
                     will be requested from this registry origin.
       `
+    },
+    'custom-remote': {
+      hint: 'url',
+      description: `Sets an alternative registry URL for authenticated requests
+
+                    This overrides the registry setting when provided.
+      `
+    },
+    'auth-token': {
+      hint: 'token',
+      description: `Authentication token for registry requests
+
+                    Used as Bearer token in Authorization header.
+                    Takes precedence over NPM_TOKEN env var and .npmrc file.
+      `
+    },
+    'npmrc-path': {
+      hint: 'path',
+      description: `Path to .npmrc file for authentication
+
+                    Defaults to ~/.npmrc if not specified.
+      `
     }
   })
 

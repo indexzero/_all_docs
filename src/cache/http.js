@@ -8,6 +8,7 @@ export class BaseHTTPClient {
     this.dispatcher = options.dispatcher; // undici dispatcher (Agent, Pool, etc.)
     this.requestTimeout = options.requestTimeout || 30000;
     this.traceHeader = options.traceHeader || 'x-trace-id';
+    this.authToken = options.authToken; // Optional auth token for Bearer authentication
     this.defaultHeaders = new Headers({
       'user-agent': options.userAgent || '_all_docs/0.1.0'
     });
@@ -35,6 +36,11 @@ export class BaseHTTPClient {
     // Add trace header if not present
     if (!headers.has(this.traceHeader)) {
       headers.set(this.traceHeader, this.generateTraceId());
+    }
+
+    // Add authentication header if token is provided
+    if (this.authToken && !headers.has('authorization')) {
+      headers.set('authorization', `Bearer ${this.authToken}`);
     }
     
     // Create AbortController for timeout handling
