@@ -22,6 +22,7 @@
     "@vltpkg/error-cause": "0.0.0-9",
     "debug": "^4.4.0",
     "jackspeak": "^4.1.0",
+    "npm-package-arg": "^12.0.0",
     "p-map": "catalog:"
   },
   "bin": {

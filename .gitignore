@@ -156,6 +156,8 @@ cache*/*
 # AI Slopsters
 CLAUDE.md
 .claude
+dev/plans
+dev/specs
 
 # Benchmark data
 bench/follower/data/
