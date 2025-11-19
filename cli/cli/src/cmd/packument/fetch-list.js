@@ -2,6 +2,7 @@ import { basename, resolve, extname } from 'node:path';
 import { readFileSync } from 'node:fs';
 import process from 'node:process';
 import pMap from 'p-map';
+import npa from 'npm-package-arg';
 import { PackumentClient } from '@_all_docs/packument';
 
 /**
@@ -22,10 +23,18 @@ function parseTextFile(filepath) {
       continue;
     }
 
-    // Handle package@version format - extract just the package name
-    const packageName = trimmed.split('@')[0] || trimmed;
-    if (packageName) {
-      packages.push(packageName);
+    try {
+      // Use npm-package-arg to properly parse package specs
+      // This handles scoped packages, versions, tags, etc.
+      const parsed = npa(trimmed);
+
+      // Get the package name (works for both regular and scoped packages)
+      if (parsed.name) {
+        packages.push(parsed.name);
+      }
+    } catch (err) {
+      // Log warning but continue processing other packages
+      console.warn(`Warning: Invalid package spec "${trimmed}": ${err.message}`);
     }
   }
 
