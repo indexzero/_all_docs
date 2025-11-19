@@ -64,7 +64,7 @@ registry=https://custom.registry.com
   await t.test('handles missing file gracefully', () => {
     const parser = new NpmrcParser('/non/existent/path/.npmrc');
 
-    assert.equal(parser.getRegistry(), 'https://registry.npmjs.org');
+    assert.equal(parser.getRegistry(), 'https://registry.npmjs.org/');
     assert.equal(parser.hasTokens(), false);
     assert.equal(parser.getToken('https://registry.npmjs.org'), undefined);
   });

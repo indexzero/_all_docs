@@ -9,7 +9,7 @@ import { parse as parseIni } from 'ini';
  */
 export class NpmrcParser {
   #config = {};
-  #registry = 'https://registry.npmjs.org';
+  #registry = 'https://registry.npmjs.org/';
 
   /**
    * Create a new NpmrcParser instance

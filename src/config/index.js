@@ -15,7 +15,7 @@ export default class Config {
     };
 
     // Parse .npmrc file synchronously at startup
-    this.npmrc = new NpmrcParser(cli.values.npmrcPath);
+    this.npmrc = new NpmrcParser(cli.values.rcfile);
 
     // Determine auth token with precedence:
     // 1. CLI flag (--auth-token)
@@ -64,7 +64,7 @@ export default class Config {
 
     // Check npm_config_ style environment variables
     // Format: npm_config_//registry.npmjs.org/:_authToken
-    const registry = this.cli.values.customRemote || this.cli.values.registry || 'https://registry.npmjs.org';
+    const registry = this.cli.values.registry || 'https://registry.npmjs.org';
     const registryHost = new URL(registry).host;
     const envKey = `npm_config_//${registryHost}/:_authToken`;
     const envKeyNormalized = envKey.replace(/[^a-zA-Z0-9_]/g, '_');
@@ -83,10 +83,9 @@ export default class Config {
 
   /**
    * Get the effective registry URL
-   * Uses custom-remote if provided, otherwise falls back to registry
    * @returns {string} Registry URL
    */
   getRegistry() {
-    return this.cli.values.customRemote || this.cli.values.registry || this.npmrc.getRegistry();
+    return this.cli.values.registry || this.npmrc.getRegistry();
   }
 }

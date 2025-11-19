@@ -52,7 +52,7 @@ export const command = async cli => {
   const { length } = packageNames;
   console.log(`Fetching ${length} packuments from ${filename}`);
 
-  // Use custom-remote if provided, otherwise use registry
+  // Get the registry URL from config
   const registryUrl = cli.getRegistry();
 
   // Create environment for storage driver

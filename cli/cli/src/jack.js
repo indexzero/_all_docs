@@ -66,18 +66,11 @@ const cli = ack
     },
     registry: {
       hint: 'url',
-      default: 'https://registry.npmjs.org',
       description: `Sets the registry for use with /<packument> requests
 
                     For example, \`GET /winston\`
                     will be requested from this registry origin.
-      `
-    },
-    'custom-remote': {
-      hint: 'url',
-      description: `Sets an alternative registry URL for authenticated requests
-
-                    This overrides the registry setting when provided.
+                    Defaults to https://registry.npmjs.org if not specified.
       `
     },
     'auth-token': {
@@ -88,7 +81,7 @@ const cli = ack
                     Takes precedence over NPM_TOKEN env var and .npmrc file.
       `
     },
-    'npmrc-path': {
+    rcfile: {
       hint: 'path',
       description: `Path to .npmrc file for authentication
 
