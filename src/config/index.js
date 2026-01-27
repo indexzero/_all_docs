@@ -19,7 +19,7 @@ export default class Config {
 
     // Determine auth credentials with precedence:
     // 1. CLI flag (--auth-token or --auth)
-    // 2. Environment variable (NPM_TOKEN or npm_config_//registry/_authToken, _ALL_DOCS_AUTH)
+    // 2. Environment variable (NPM_TOKEN, _ALL_DOCS_AUTH)
     // 3. .npmrc file
     this.authToken = this.#resolveAuthToken();
     this.auth = this.#resolveAuth();
@@ -58,24 +58,14 @@ export default class Config {
     }
 
     // 2. Check environment variables
-    // NPM_TOKEN takes precedence
+    // NPM_TOKEN is the standard npm environment variable for auth
     if (process.env.NPM_TOKEN) {
       return process.env.NPM_TOKEN;
     }
 
-    // Check npm_config_ style environment variables
-    // Format: npm_config_//registry.npmjs.org/:_authToken
-    const registry = this.cli.values.registry || 'https://registry.npmjs.org';
-    const registryHost = new URL(registry).host;
-    const envKey = `npm_config_//${registryHost}/:_authToken`;
-    const envKeyNormalized = envKey.replace(/[^a-zA-Z0-9_]/g, '_');
-
-    if (process.env[envKeyNormalized]) {
-      return process.env[envKeyNormalized];
-    }
-
     // 3. Check .npmrc file
     if (this.npmrc.hasTokens()) {
+      const registry = this.cli.values.registry || 'https://registry.npmjs.org';
       return this.npmrc.getToken(registry);
     }
 

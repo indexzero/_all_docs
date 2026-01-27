@@ -44,9 +44,11 @@ export NPM_TOKEN="your_token_here"
 # Basic auth (jackspeak auto-maps from CLI flag)
 export _ALL_DOCS_AUTH="username:password"
 
-# npm_config_ style variables (for specific registries)
-export npm_config___registry_npmjs_org___authToken="token_here"
+# Set registry URL via environment variable
+export npm_config_registry="https://custom.registry.com"
 ```
+
+**Note**: Registry-specific auth tokens (like `//registry.npmjs.org/:_authToken`) can only be configured in `.npmrc` files, not via environment variables. The `NPM_TOKEN` environment variable applies to all registries.
 
 ### 3. .npmrc File
 
