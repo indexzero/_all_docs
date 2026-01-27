@@ -16,13 +16,13 @@ Use command-line flags for direct authentication:
 
 ```bash
 # Bearer token authentication
-_all_docs packument fetch-list pkgs.txt --auth-token="npm_token_here"
+_all_docs packument fetch-list pkgs.txt --token="npm_token_here"
 
 # Basic auth (user:pass format)
 _all_docs packument fetch-list pkgs.txt --auth="username:password"
 
 # Custom registry with Bearer token
-_all_docs packument fetch-list pkgs.txt --registry="https://custom.registry.com" --auth-token="token"
+_all_docs packument fetch-list pkgs.txt --registry="https://custom.registry.com" --token="token"
 
 # Custom registry with Basic auth
 _all_docs packument fetch-list pkgs.txt --registry="https://custom.registry.com" --auth="user:pass"
@@ -31,7 +31,7 @@ _all_docs packument fetch-list pkgs.txt --registry="https://custom.registry.com"
 _all_docs packument fetch-list pkgs.txt --rcfile="/custom/path/.npmrc"
 ```
 
-**Note**: Bearer token (`--auth-token`) takes precedence over Basic auth (`--auth`) when both are provided.
+**Note**: Bearer token (`--token`) takes precedence over Basic auth (`--auth`) when both are provided.
 
 ### 2. Environment Variables
 
@@ -42,7 +42,7 @@ Set environment variables for authentication:
 export NPM_TOKEN="your_token_here"
 
 # Basic auth (jackspeak auto-maps from CLI flag)
-export _ALL_DOCS_AUTH="username:password"
+export ALL_DOCS_AUTH="username:password"
 
 # Set registry URL via environment variable
 export npm_config_registry="https://custom.registry.com"

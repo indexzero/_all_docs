@@ -40,7 +40,7 @@ function getCommand(name) {
 }
 
 const ack = jack({
-  envPrefix: '_all_docs',
+  envPrefix: 'ALL_DOCS',
   allowPositionals: true,
   usage: '_all_docs [<options>] [<cmd> [<args> ...]]'
 })
@@ -81,7 +81,7 @@ const cli = ack
                     WARNING: Visible in process list. Use environment variables or .npmrc instead.
       `
     },
-    'auth-token': {
+    token: {
       hint: 'token',
       description: `Bearer token for registry authentication
 

@@ -18,8 +18,8 @@ export default class Config {
     this.npmrc = new NpmrcParser(cli.values.rcfile);
 
     // Determine auth credentials with precedence:
-    // 1. CLI flag (--auth-token or --auth)
-    // 2. Environment variable (NPM_TOKEN, _ALL_DOCS_AUTH)
+    // 1. CLI flag (--token or --auth)
+    // 2. Environment variable (NPM_TOKEN, ALL_DOCS_TOKEN)
     // 3. .npmrc file
     this.authToken = this.#resolveAuthToken();
     this.auth = this.#resolveAuth();
@@ -53,8 +53,8 @@ export default class Config {
    */
   #resolveAuthToken() {
     // 1. Check CLI flag
-    if (this.cli.values.authToken) {
-      return this.cli.values.authToken;
+    if (this.cli.values.token) {
+      return this.cli.values.token;
     }
 
     // 2. Check environment variables
