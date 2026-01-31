@@ -58,8 +58,13 @@ export const command = async cli => {
     throw new Error(`Unsupported file type: ${ext}. Use .json or .txt files.`);
   }
 
+  if (packageNames.length === 0) {
+    console.warn(`Warning: No valid package names found in ${filename}`);
+    return;
+  }
+
   const { length } = packageNames;
-  console.log(`Fetching ${length} packuments from ${filename}`);
+  console.log(`Fetching ${packageNames.length} packuments from ${filename}`);
 
   // Get the registry URL from config
   const registryUrl = cli.getRegistry();
