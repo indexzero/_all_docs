@@ -165,6 +165,45 @@ const cli = ack
   })
 
   .flag({
+    checkpoint: {
+      default: true,
+      description: `Enable checkpoint tracking for resumable fetch operations.
+
+                    Progress is saved to disk and can be resumed if
+                    interrupted. Enabled by default.
+      `
+    },
+    'no-checkpoint': {
+      description: `Disable checkpoint tracking.
+
+                    Run without saving progress. Use for small lists
+                    or one-off fetches.
+      `
+    },
+    status: {
+      description: `Show checkpoint status without fetching.
+
+                    Displays progress summary for the input file's
+                    checkpoint and exits.
+      `
+    },
+    'list-failed': {
+      description: `List packages that failed to fetch from checkpoint.
+
+                    Shows all packages marked as failed in the
+                    checkpoint and exits.
+      `
+    },
+    fresh: {
+      description: `Ignore existing checkpoint and start fresh.
+
+                    Deletes any existing checkpoint for the input
+                    file and begins from the start.
+      `
+    }
+  })
+
+  .flag({
     version: {
       short: 'v',
       description: 'Display current _all_docs version'
