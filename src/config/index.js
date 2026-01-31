@@ -89,7 +89,7 @@ export default class Config {
     }
 
     // 3. Check .npmrc file for _auth field
-    const registry = this.cli.values.registry || 'https://registry.npmjs.org';
+    const registry = this.getRegistry();
     if (this.npmrc.hasAuth()) {
       return this.npmrc.getAuth(registry);
     }
