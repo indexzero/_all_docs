@@ -59,9 +59,39 @@ npx _all_docs partition refresh --pivots ./pivots.js
 # Fetch specific packages
 npx _all_docs packument fetch express react vue
 
+# Fetch packages from a file (with automatic checkpoint/resume)
+npx _all_docs packument fetch-list ./packages.json
+
 # Create cache index
 npx _all_docs cache create-index > index.txt
 ```
+
+### Bulk Fetch with Checkpoints
+
+The `packument fetch-list` command fetches packuments from a JSON array or newline-delimited text file. Checkpoints are enabled by default, making large fetches resumable:
+
+```bash
+# Fetch from JSON array (checkpoint enabled by default)
+npx _all_docs packument fetch-list ./packages.json
+
+# Check progress
+npx _all_docs packument fetch-list ./packages.json --status
+
+# List any failed packages
+npx _all_docs packument fetch-list ./packages.json --list-failed
+
+# Start fresh (delete existing checkpoint)
+npx _all_docs packument fetch-list ./packages.json --fresh
+
+# Disable checkpoint for one-off fetches
+npx _all_docs packument fetch-list ./packages.json --no-checkpoint
+```
+
+Input file formats:
+- **JSON array**: `["lodash", "express", "@babel/core"]`
+- **Text file**: One package name per line, `#` comments supported
+
+Checkpoints track per-package progress and automatically resume on re-run. Failed packages retry up to 3 times. Progress saves every 100 packages and on Ctrl+C.
 
 ### Fetch Registry Data (from code)
 
