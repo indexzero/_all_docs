@@ -166,17 +166,18 @@ const cli = ack
 
   .flag({
     checkpoint: {
+      default: true,
       description: `Enable checkpoint tracking for resumable fetch operations.
 
-                    When enabled, progress is saved to disk and can be
-                    resumed if interrupted.
+                    Progress is saved to disk and can be resumed if
+                    interrupted. Enabled by default.
       `
     },
-    resume: {
-      description: `Resume from existing checkpoint.
+    'no-checkpoint': {
+      description: `Disable checkpoint tracking.
 
-                    Continues fetching from where a previous
-                    checkpointed run left off.
+                    Run without saving progress. Use for small lists
+                    or one-off fetches.
       `
     },
     status: {

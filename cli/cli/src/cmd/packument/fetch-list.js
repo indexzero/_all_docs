@@ -61,16 +61,22 @@ async function loadPackageNames(fullpath) {
 }
 
 /**
- * Display checkpoint status and exit
+ * Display checkpoint status
  * @param {PackumentListCheckpoint} checkpoint
+ * @param {number} total - Total packages from input file
  */
-function showStatus(checkpoint) {
+function showStatus(checkpoint, total) {
   const status = checkpoint.getStatus();
 
   if (!status) {
-    console.log('No checkpoint found for this input file.');
-    console.log(`Expected: ${checkpoint.checkpointPath}`);
-    process.exit(1);
+    // No checkpoint yet - show "not started" status
+    console.log(`Checkpoint: ${checkpoint.checkpointPath}`);
+    console.log(`Status: Not started`);
+    console.log('');
+    console.log(`Total:     ${total}`);
+    console.log(`Completed: 0 (0.0%)`);
+    console.log(`Pending:   ${total}`);
+    return;
   }
 
   console.log(`Checkpoint: ${status.checkpointPath}`);
@@ -87,13 +93,13 @@ function showStatus(checkpoint) {
 }
 
 /**
- * Display failed packages and exit
+ * Display failed packages
  * @param {PackumentListCheckpoint} checkpoint
  */
 function showFailed(checkpoint) {
   if (!checkpoint.load()) {
-    console.log('No checkpoint found for this input file.');
-    process.exit(1);
+    console.log('No checkpoint found. Run a fetch first.');
+    return;
   }
 
   const failed = checkpoint.getFailed();
@@ -115,14 +121,20 @@ export const command = async cli => {
   const fullpath = resolve(process.cwd(), cli._[0] ?? 'npm-high-impact.json');
   const filename = basename(fullpath);
 
+  // Checkpoint is enabled by default, disabled with --no-checkpoint
+  const useCheckpoint = cli.values.checkpoint && !cli.values['no-checkpoint'];
+
   // Initialize checkpoint
   const checkpoint = new PackumentListCheckpoint(fullpath);
-  const useCheckpoint = cli.values.checkpoint || cli.values.resume || cli.values.status || cli.values['list-failed'];
+
+  // Load package names from input file
+  const allPackageNames = await loadPackageNames(fullpath);
+  const total = allPackageNames.length;
 
   // Handle --status: show status and exit
   if (cli.values.status) {
     checkpoint.load();
-    showStatus(checkpoint);
+    showStatus(checkpoint, total);
     return;
   }
 
@@ -132,38 +144,19 @@ export const command = async cli => {
     return;
   }
 
-  // Load package names from input file
-  const allPackageNames = await loadPackageNames(fullpath);
-  const total = allPackageNames.length;
-
   // Determine which packages to fetch
   let packageNames;
 
   if (cli.values.fresh) {
     // --fresh: delete existing checkpoint and start over
     checkpoint.delete();
-    checkpoint.initialize(allPackageNames);
+    if (useCheckpoint) {
+      checkpoint.initialize(allPackageNames);
+    }
     packageNames = allPackageNames;
     console.log(`Starting fresh: ${total} packuments from ${filename}`);
-  } else if (cli.values.resume) {
-    // --resume: load checkpoint and continue
-    if (!checkpoint.load()) {
-      console.error('No checkpoint found to resume. Use --checkpoint to start a new run.');
-      process.exit(1);
-    }
-
-    if (!checkpoint.verifyInputHash()) {
-      console.error('Input file has changed since checkpoint was created.');
-      console.error('Use --fresh to start over, or restore the original input file.');
-      process.exit(1);
-    }
-
-    packageNames = checkpoint.getPending();
-    const completed = total - packageNames.length;
-    console.log(`Resuming from checkpoint: ${completed}/${total} completed`);
-    console.log(`Fetching remaining ${packageNames.length} packuments from ${filename}`);
-  } else if (cli.values.checkpoint) {
-    // --checkpoint: create new checkpoint or resume if exists
+  } else if (useCheckpoint) {
+    // Checkpoint mode (default): create or resume
     if (checkpoint.exists()) {
       checkpoint.load();
       if (!checkpoint.verifyInputHash()) {
@@ -173,23 +166,28 @@ export const command = async cli => {
       }
       packageNames = checkpoint.getPending();
       const completed = total - packageNames.length;
-      console.log(`Found existing checkpoint: ${completed}/${total} completed`);
-      console.log(`Fetching remaining ${packageNames.length} packuments`);
+      if (completed > 0) {
+        console.log(`Resuming: ${completed}/${total} completed`);
+        console.log(`Fetching remaining ${packageNames.length} packuments from ${filename}`);
+      } else {
+        console.log(`Fetching ${total} packuments from ${filename}`);
+      }
     } else {
       checkpoint.initialize(allPackageNames);
       packageNames = allPackageNames;
-      console.log(`Checkpoint enabled: ${total} packuments from ${filename}`);
+      console.log(`Fetching ${total} packuments from ${filename}`);
     }
   } else {
-    // No checkpoint flags: run without checkpoint
+    // --no-checkpoint: run without checkpoint
     packageNames = allPackageNames;
-    console.log(`Fetching ${total} packuments from ${filename}`);
+    console.log(`Fetching ${total} packuments from ${filename} (no checkpoint)`);
   }
 
   if (packageNames.length === 0) {
     console.log('All packages already completed!');
     if (useCheckpoint) {
-      showStatus(checkpoint);
+      console.log('');
+      showStatus(checkpoint, total);
     }
     return;
   }
@@ -288,9 +286,9 @@ export const command = async cli => {
     if (interrupted) {
       const status = checkpoint.getStatus();
       console.log(`Checkpoint saved: ${status.stats.completed}/${total} (${status.percentComplete}%)`);
-      console.log(`Resume with: npx _all_docs packument fetch-list ${cli._[0]} --resume`);
+      console.log(`Resume with: _all_docs packument fetch-list ${cli._[0]}`);
     } else {
-      showStatus(checkpoint);
+      showStatus(checkpoint, total);
     }
   }
 };
