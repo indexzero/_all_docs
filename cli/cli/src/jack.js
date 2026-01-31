@@ -40,7 +40,7 @@ function getCommand(name) {
 }
 
 const ack = jack({
-  envPrefix: '_all_docs',
+  envPrefix: 'ALL_DOCS',
   allowPositionals: true,
   usage: '_all_docs [<options>] [<cmd> [<args> ...]]'
 })
@@ -66,11 +66,34 @@ const cli = ack
     },
     registry: {
       hint: 'url',
-      default: 'https://registry.npmjs.org',
       description: `Sets the registry for use with /<packument> requests
 
                     For example, \`GET /winston\`
                     will be requested from this registry origin.
+                    Defaults to https://registry.npmjs.org if not specified.
+      `
+    },
+    auth: {
+      hint: 'user:pass',
+      description: `Basic authentication credentials in format "user:pass"
+
+                    Used for Basic auth in Authorization header.
+                    WARNING: Visible in process list. Use environment variables or .npmrc instead.
+      `
+    },
+    token: {
+      hint: 'token',
+      description: `Bearer token for registry authentication
+
+                    Used as Bearer token in Authorization header.
+                    Takes precedence over Basic auth when both are provided.
+      `
+    },
+    rcfile: {
+      hint: 'path',
+      description: `Path to .npmrc file for authentication
+
+                    Defaults to ~/.npmrc if not specified.
       `
     }
   })

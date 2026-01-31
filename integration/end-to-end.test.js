@@ -274,14 +274,11 @@ describe('End-to-End Integration Tests', () => {
 
   describe('Error Handling and Recovery', () => {
     it('should handle and recover from network errors', async () => {
-      const badEnv = {
-        ...env,
-        NPM_ORIGIN: 'http://localhost:99999' // Use invalid port instead of DNS
-      };
+      const badOrigin = 'http://localhost:59999'; // Use invalid port to trigger connection refused
 
-      const client = new PartitionClient({ env: badEnv });
+      const client = new PartitionClient({ origin: badOrigin, env });
       // Initialize the client to ensure it's ready
-      await client.initializeAsync(badEnv);
+      await client.initializeAsync(env);
       
       // The request might be hitting cache, so let's use a unique key
       const uniqueStart = `test-${Date.now()}`;
