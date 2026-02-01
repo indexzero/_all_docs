@@ -83,9 +83,10 @@ export class PackumentClient extends BaseHTTPClient {
   async request(packageName, options = {}) {
     await this.ensureInitialized();
 
-    // Build URL
-    const url = new URL(`/${encodeURIComponent(packageName)}`, this.origin);
-    
+    // Build URL - append package name to existing path (preserves /javascript, etc.)
+    const url = new URL(this.origin);
+    const basePath = url.pathname.endsWith('/') ? url.pathname : url.pathname + '/';
+    url.pathname = basePath + encodeURIComponent(packageName);
     const {
       signal,
       staleWhileRevalidate = true,

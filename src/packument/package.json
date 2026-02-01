@@ -14,11 +14,15 @@
     "debug": "^4.4.1",
     "p-map": "catalog:"
   },
+  "devDependencies": {
+    "rimraf": "^6.0.1"
+  },
   "author": "Charlie Robbins <npm@charlie.dev>",
   "license": "Apache-2.0",
   "scripts": {
     "lint": "xo",
-    "lint:fix": "xo --fix"
+    "lint:fix": "xo --fix",
+    "test": "node --test test/*.test.js"
   },
   "bugs": {
     "url": "https://github.com/indexzero/_all_docs/issues"
