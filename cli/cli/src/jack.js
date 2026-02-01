@@ -270,6 +270,15 @@ const cli = ack
     limit: {
       hint: 'n',
       description: `Maximum records to return`
+    },
+    format: {
+      hint: 'fmt',
+      description: `Output format: ndjson (default), lines, json
+
+                    - ndjson: One JSON object per line (streaming)
+                    - lines: Plain text values (for shell piping)
+                    - json: Complete JSON array
+      `
     }
   })
 

@@ -23,6 +23,7 @@ Available commands:
 - `partition` - Work with registry partitions
 - `packument` - Fetch and manage package documents
 - `cache` - Manage local cache
+- `view` - Define and query views over cached data
 
 ---
 
@@ -671,8 +672,42 @@ npx _all_docs view query <name> [options]
 
 **Options:**
 - `--limit <n>` - Maximum records to return
-- `--filter <expr>` - Filter expression
+- `--filter <expr>` - Filter expression (e.g., `name=lodash`, `versions|length>10`)
 - `--count` - Only output the count of matching records
+- `--format <fmt>` - Output format: ndjson (default), lines, json
+
+**Output Formats:**
+
+| Format | Description | Use Case |
+|--------|-------------|----------|
+| `ndjson` | Newline-delimited JSON (default) | Streaming processing with jq |
+| `lines` | Plain text values | Shell piping, xargs, sort, uniq |
+| `json` | JSON array | Small datasets, programmatic use |
+
+**Examples:**
+
+```bash
+# Query with default ndjson output
+npx _all_docs view query npm-pkgs
+
+# Query with limit
+npx _all_docs view query npm-pkgs --limit 100
+
+# Get count only
+npx _all_docs view query npm-pkgs --count
+
+# Output as JSON array
+npx _all_docs view query npm-pkgs --format json > packages.json
+
+# Output as plain text for shell piping
+npx _all_docs view query npm-pkgs --select 'name' --format lines | wc -l
+
+# Find packages with many versions
+npx _all_docs view query npm-pkgs --filter 'count > 100' --format lines
+
+# Count scoped packages
+npx _all_docs view query npm-pkgs --select 'name' --format lines | grep '^@' | wc -l
+```
 
 ### view join
 
@@ -682,26 +717,62 @@ Join two views on a common key.
 npx _all_docs view join <left> <right> [options]
 ```
 
+**Options:**
+- `--on <field>` - Join key field (default: name)
+- `--left` - Left join (include all from left view)
+- `--inner` - Inner join (only records in both views)
+- `--right` - Right join (include all from right view)
+- `--full` - Full join (all records from both views)
+- `--diff` - Set difference (records in left but not in right)
+- `--limit <n>` - Maximum records to return
+- `--select <expr>` - Output field selection
+
 This enables comparing packages across different sources:
+
+**Examples:**
 
 ```bash
 # Compare npm cache against local snapshot
 npx _all_docs view define npm --origin npm
 npx _all_docs view define snapshot --origin ./snapshot/
 npx _all_docs view join npm snapshot --diff --select 'name'
+
+# Find packages in npm but not in CGR
+npx _all_docs view join npm-pkgs cgr-pkgs --diff --select 'name'
+
+# Inner join - packages in both registries
+npx _all_docs view join npm-pkgs cgr-pkgs --inner
 ```
 
 ### view list
 
 List all defined views.
 
+```bash
+npx _all_docs view list [options]
+```
+
+**Options:**
+- `--json` - Output as JSON
+
 ### view show
 
 Show details of a defined view.
 
+```bash
+npx _all_docs view show <name>
+```
+
 ### view delete
 
 Delete a defined view.
+
+```bash
+npx _all_docs view delete <name> [options]
+```
+
+**Options:**
+- `--force`, `-f` - Delete without confirmation
 
 ---
 
