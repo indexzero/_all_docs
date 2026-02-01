@@ -91,6 +91,23 @@ export class NodeStorageDriver {
       entries.map(({ key, value }) => this.put(key, value))
     );
   }
+
+  /**
+   * Clear all entries from the cache
+   * @returns {Promise<void>}
+   */
+  async clear() {
+    await cacache.rm.all(this.cachePath);
+  }
+
+  /**
+   * Get metadata info for a cache entry
+   * @param {string} key - Cache key
+   * @returns {Promise<Object|null>} Entry info or null if not found
+   */
+  async info(key) {
+    return cacache.get.info(this.cachePath, key);
+  }
 }
 
 // Export a factory function that matches the runtime interface

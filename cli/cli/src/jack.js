@@ -204,6 +204,46 @@ const cli = ack
   })
 
   .flag({
+    packuments: {
+      description: 'Target packument cache (for cache clear)'
+    },
+    partitions: {
+      description: 'Target partition cache (for cache clear)'
+    },
+    checkpoints: {
+      description: 'Target checkpoint files (for cache clear)'
+    },
+    'dry-run': {
+      description: 'Show what would be done without making changes'
+    },
+    interactive: {
+      short: 'i',
+      description: 'Prompt for confirmation before destructive operations'
+    }
+  })
+
+  .opt({
+    'older-than': {
+      hint: 'duration',
+      description: `Clear entries older than duration (e.g., 7d, 24h, 30m)
+
+                    Valid units: d (days), h (hours), m (minutes), s (seconds)
+      `
+    },
+    package: {
+      hint: 'name',
+      description: 'Target specific package by name (for cache clear)'
+    },
+    'match-origin': {
+      hint: 'key',
+      description: `Clear entries matching origin key (for cache clear)
+
+                    Use the encoded origin format (e.g., paces.exale.com~javpt)
+      `
+    }
+  })
+
+  .flag({
     version: {
       short: 'v',
       description: 'Display current _all_docs version'

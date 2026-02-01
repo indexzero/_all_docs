@@ -8,7 +8,13 @@ async function outputCommand({ command, usage, name }, cli) {
   }
 
   if (cli.values.help) {
-    console.log(usage().usage());
+    if (typeof usage === 'string') {
+      console.log(usage);
+    } else if (typeof usage === 'function') {
+      console.log(usage().usage());
+    } else {
+      console.log(cli.usage());
+    }
     return;
   }
 

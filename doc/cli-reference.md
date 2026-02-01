@@ -359,29 +359,61 @@ Total Cache Size: 1.14 GB
 
 ### cache clear
 
-Clear cache entries.
+Clear cache entries with flexible filtering options.
 
 ```bash
-npx _all_docs cache clear
+npx _all_docs cache clear [options]
 ```
 
 **Options:**
-- `--type <type>` - Clear type: partition, packument, all
-- `--older-than <days>` - Only clear entries older than N days
-- `--pattern <glob>` - Clear entries matching pattern
-- `--yes` - Skip confirmation prompt
+- `--packuments` - Clear packument cache only
+- `--partitions` - Clear partition cache only
+- `--checkpoints` - Clear checkpoint files only
+- `--registry <url>` - Clear entries for specific registry origin
+- `--match-origin <key>` - Clear entries matching origin key (e.g., `custom.reg.io`)
+- `--package <name>` - Clear cache for specific package
+- `--older-than <duration>` - Clear entries older than duration (e.g., `7d`, `24h`, `30m`, `60s`)
+- `--dry-run` - Show what would be cleared without deleting
+- `--interactive`, `-i` - Prompt for confirmation before clearing
 
-**Example:**
+**Duration format:**
+- `d` - days (e.g., `7d` = 7 days)
+- `h` - hours (e.g., `24h` = 24 hours)
+- `m` - minutes (e.g., `30m` = 30 minutes)
+- `s` - seconds (e.g., `60s` = 60 seconds)
+
+**Examples:**
 
 ```bash
-# Clear all cache (with confirmation)
-npx _all_docs cache clear --type all
+# Clear everything (all cache types)
+npx _all_docs cache clear
 
-# Clear old partitions
-npx _all_docs cache clear --type partition --older-than 30 --yes
+# Clear only packuments
+npx _all_docs cache clear --packuments
 
-# Clear specific patterns
-npx _all_docs cache clear --pattern "*express*" --yes
+# Clear only partitions
+npx _all_docs cache clear --partitions
+
+# Clear only checkpoint files
+npx _all_docs cache clear --checkpoints
+
+# Clear cache for a specific package
+npx _all_docs cache clear --package lodash
+
+# Clear cache for a specific registry
+npx _all_docs cache clear --registry https://registry.npmjs.com
+
+# Clear entries older than 7 days
+npx _all_docs cache clear --older-than 7d
+
+# Clear old packuments only
+npx _all_docs cache clear --packuments --older-than 7d
+
+# Preview what would be cleared (dry run)
+npx _all_docs cache clear --dry-run
+
+# Interactive mode - confirm before clearing
+npx _all_docs cache clear --interactive
 ```
 
 ---
@@ -560,6 +592,7 @@ NODE_OPTIONS="--max-old-space-size=4096" \
 # Validate and fix
 npx _all_docs cache validate-partitions --fix
 
-# Or clear and restart
-npx _all_docs cache clear --type all --yes
+# Or clear and restart (preview first with --dry-run)
+npx _all_docs cache clear --dry-run
+npx _all_docs cache clear
 ```
