@@ -155,6 +155,64 @@ npx _all_docs packument fetch @babel/core
 - Cache file: `cache/packuments/v1:packument:npm:{hex(name)}.json`
 - Console: Package name, version count, cache status
 
+### packument show
+
+Display a cached packument with optional field selection.
+
+```bash
+npx _all_docs packument show <name[@version]> [options]
+```
+
+**Arguments:**
+- `<name[@version]>` - Package name, optionally with version
+
+**Options:**
+- `--select <expr>` - Project specific fields using selector syntax
+- `--registry <url>` - Registry URL (default: npm)
+- `--raw` - Output raw JSON without formatting
+
+**Selector Syntax:**
+- `field` - Simple field access
+- `field.nested` - Nested field access
+- `field["key"]` - Bracket notation (for keys with special chars)
+- `field|transform` - Apply transform (keys, values, length, etc.)
+- `expr as alias` - Rename output field
+
+**Examples:**
+
+```bash
+# Show full packument
+npx _all_docs packument show lodash
+
+# Get version list
+npx _all_docs packument show lodash --select 'versions|keys'
+
+# Get publish date for specific version
+npx _all_docs packument show lodash --select 'time["4.17.21"]'
+
+# Get integrity hash for versioned packument
+npx _all_docs packument show lodash@4.17.21 --select 'dist.integrity'
+
+# Get multiple fields
+npx _all_docs packument show lodash --select 'name, versions|keys|length as count'
+```
+
+**Use Cases:**
+
+```bash
+# Build verification - check integrity hash
+npx _all_docs packument show express@4.18.2 --select 'dist.integrity'
+
+# Audit - check publish date
+npx _all_docs packument show left-pad --select 'time["1.1.1"]'
+
+# Quick version count
+npx _all_docs packument show lodash --select 'versions|keys|length'
+
+# Get tarball URL for download
+npx _all_docs packument show react@18.2.0 --select 'dist.tarball'
+```
+
 ### packument fetch-list
 
 Fetch multiple packuments from a list.
