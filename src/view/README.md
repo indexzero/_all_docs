@@ -136,12 +136,25 @@ _all_docs view join <left> <right> [options]
 --right     # All from right, matching from left
 --full      # All records from both
 --diff      # Records in left but not in right
+```
 
-# Examples
-_all_docs view join npm-pkgs private-pkgs               # Left join
-_all_docs view join npm-pkgs private-pkgs --inner       # Only shared
-_all_docs view join npm-pkgs private-pkgs --diff        # npm-only packages
-_all_docs view join npm-pkgs private-pkgs --on name     # Join on name field
+**Example: Find suspicious packages with install scripts but no node-gyp dependency**
+
+Packages with `preinstall` or `postinstall` scripts typically need them for native compilation (node-gyp). Packages with these scripts that *don't* depend on node-gyp may warrant investigation.
+
+```bash
+# View 1: Packages with install scripts
+_all_docs view define has-install-scripts --origin npm \
+  --select 'name, scripts.preinstall, scripts.postinstall' \
+  --where 'scripts.preinstall != null || scripts.postinstall != null'
+
+# View 2: Packages that depend on node-gyp
+_all_docs view define uses-node-gyp --origin npm \
+  --select 'name' \
+  --where 'dependencies["node-gyp"] != null || devDependencies["node-gyp"] != null'
+
+# Find packages with install scripts but NO node-gyp dependency
+_all_docs view join has-install-scripts uses-node-gyp --diff | head -100
 ```
 
 ### Delete a View
