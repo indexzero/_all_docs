@@ -82,7 +82,7 @@ export class PackumentClient extends BaseHTTPClient {
    */
   async request(packageName, options = {}) {
     await this.ensureInitialized();
-    
+
     // Build URL
     const url = new URL(`/${encodeURIComponent(packageName)}`, this.origin);
     
