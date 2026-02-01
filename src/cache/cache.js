@@ -13,9 +13,10 @@ export class Cache {
     this.bloomSize = options.bloomSize || 10000;
     this.bloomFalsePositiveRate = options.bloomFalsePositiveRate || 0.01;
     this._bloomInitialized = false;
+    this._bloomPopulated = false; // True only when bloom filter is populated from existing data
     this._inflightRequests = new Map();
     this._driverInitialized = false;
-    
+
     if (!this.driver) {
       throw new Error('Storage driver is required');
     }
@@ -61,12 +62,13 @@ export class Cache {
   async _doFetch(key, options = {}) {
     const driver = await this._ensureDriver();
     await this._initBloomFilter();
-    
-    // Check bloom filter first for non-existence
-    if (this.bloomFilter && !this.bloomFilter.has(key)) {
+
+    // Only use bloom filter if it was pre-populated (e.g., loaded from disk)
+    // An empty bloom filter would incorrectly reject all keys from existing caches
+    if (this.bloomFilter && this._bloomPopulated && !this.bloomFilter.has(key)) {
       return null; // Definitely not in cache
     }
-    
+
     try {
       const value = await driver.get(key);
       // Handle cache validation, ETags, etc.
@@ -82,10 +84,11 @@ export class Cache {
   async set(key, value, options = {}) {
     const driver = await this._ensureDriver();
     await this._initBloomFilter();
-    
-    // Add to bloom filter
+
+    // Add to bloom filter and mark as populated
     if (this.bloomFilter) {
       this.bloomFilter.add(key);
+      this._bloomPopulated = true;
     }
     return driver.put(key, value, options);
   }
@@ -93,9 +96,9 @@ export class Cache {
   async has(key) {
     const driver = await this._ensureDriver();
     await this._initBloomFilter();
-    
-    // Check bloom filter first
-    if (this.bloomFilter && !this.bloomFilter.has(key)) {
+
+    // Only use bloom filter if it was pre-populated
+    if (this.bloomFilter && this._bloomPopulated && !this.bloomFilter.has(key)) {
       return false; // Definitely not in cache
     }
     return driver.has(key);
