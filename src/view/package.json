@@ -1,0 +1,16 @@
+{
+  "name": "@_all_docs/view",
+  "version": "1.0.0",
+  "description": "View abstraction for _all_docs cache queries",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "scripts": {
+    "test": "node --test *.test.js"
+  },
+  "dependencies": {
+    "@_all_docs/cache": "workspace:*"
+  }
+}
