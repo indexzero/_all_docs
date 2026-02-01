@@ -59,7 +59,7 @@ export function createPackumentKey(packageName, origin = 'https://registry.npmjs
  * @param {string} origin - Full origin URL
  * @returns {string} Short origin key
  */
-function encodeOrigin(origin) {
+export function encodeOrigin(origin) {
   // Handle bare hostnames (no protocol)
   if (!origin.includes('://')) {
     origin = 'https://' + origin;
