@@ -86,6 +86,9 @@ importers:
       '@_all_docs/partition':
         specifier: workspace:*
         version: link:../../src/partition
+      '@_all_docs/view':
+        specifier: workspace:*
+        version: link:../../src/view
       '@_all_docs/worker':
         specifier: workspace:*
         version: link:../../workers/worker
@@ -203,6 +206,12 @@ importers:
   src/pivots: {}
 
   src/types: {}
+
+  src/view:
+    dependencies:
+      '@_all_docs/cache':
+        specifier: workspace:*
+        version: link:../cache
 
   workers/cloudflare:
     dependencies:
