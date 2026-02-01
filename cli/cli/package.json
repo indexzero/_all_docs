@@ -18,6 +18,7 @@
     "@_all_docs/frame": "workspace:*",
     "@_all_docs/packument": "workspace:*",
     "@_all_docs/partition": "workspace:*",
+    "@_all_docs/view": "workspace:*",
     "@_all_docs/worker": "workspace:*",
     "@vltpkg/error-cause": "0.0.0-9",
     "debug": "^4.4.0",
