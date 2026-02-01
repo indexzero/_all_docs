@@ -2,19 +2,21 @@
  * Query execution for views
  */
 import { createProjection, createFilter } from './projection.js';
+import { createOriginAdapter } from './origin-adapter.js';
 
 /**
  * Query a view, yielding projected records
  * @param {View} view - The view to query
- * @param {Cache} cache - The cache instance
+ * @param {Cache} cache - The cache instance (optional for local origins)
  * @param {Object} options - Query options
  * @param {number} [options.limit] - Maximum records to return
  * @param {string} [options.where] - Additional filter expression
  * @param {boolean} [options.progress] - Show progress on stderr
+ * @param {object} [options.adapter] - Custom origin adapter (auto-detected if not provided)
  * @yields {Object} Projected records
  */
 export async function* queryView(view, cache, options = {}) {
-  const { limit, where, progress = false } = options;
+  const { limit, where, progress = false, adapter: providedAdapter } = options;
 
   // Compile projection from view's select
   const project = createProjection({ select: view.select });
@@ -22,11 +24,13 @@ export async function* queryView(view, cache, options = {}) {
   // Compile additional filter if provided
   const filter = createFilter({ where });
 
-  const prefix = view.getCacheKeyPrefix();
+  // Get or create the origin adapter
+  const adapter = providedAdapter || createOriginAdapter(view, cache);
+
   let count = 0;
   let yielded = 0;
 
-  for await (const key of cache.keys(prefix)) {
+  for await (const key of adapter.keys()) {
     // Check limit
     if (limit && yielded >= limit) break;
 
@@ -38,11 +42,8 @@ export async function* queryView(view, cache, options = {}) {
     }
 
     try {
-      const entry = await cache.fetch(key);
-      if (!entry) continue;
-
-      // Cache entries wrap the response - packument is in body
-      const value = entry.body || entry;
+      const value = await adapter.fetch(key);
+      if (!value) continue;
 
       // Apply view's projection
       const projected = project(value);

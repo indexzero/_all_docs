@@ -11,3 +11,9 @@ export {
   createProjection,
   createFilter
 } from './projection.js';
+export {
+  CacheAdapter,
+  LocalDirAdapter,
+  createOriginAdapter,
+  isLocalOrigin
+} from './origin-adapter.js';
