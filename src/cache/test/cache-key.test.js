@@ -101,11 +101,22 @@ describe('Cache Key Utilities', () => {
       assert.equal(decoded.origin, 'https://registry.npmjs.com');
     });
 
-    it('should handle custom origins as lossy', () => {
-      const key = createPartitionKey('a', 'b', 'https://very-long-custom-registry.example.com');
+    it('should handle custom origins with readable format', () => {
+      const key = createPartitionKey('a', 'b', 'https://packages.example.com/javascript');
       const decoded = decodeCacheKey(key);
-      
-      assert.ok(decoded.origin.startsWith('<custom:'));
+
+      // Decoded origin is best-effort reconstruction from truncated segments
+      assert.ok(decoded.origin.includes('paces.exale.com'));
+      assert.ok(decoded.origin.includes('javpt'));
+    });
+
+    it('should handle legacy base64 origin keys', () => {
+      // Simulate decoding an old-format key by calling decodeCacheKey directly
+      // Old keys had base64 origins like 'aHR0cHM6' that can't contain '.' or '~'
+      const legacyKey = 'v1:packument:aHR0cHM6:657870726573';
+      const decoded = decodeCacheKey(legacyKey);
+
+      assert.ok(decoded.origin.startsWith('<legacy:'));
     });
 
     it('should throw on invalid format', () => {
@@ -118,6 +129,63 @@ describe('Cache Key Utilities', () => {
       assert.throws(() => {
         decodeCacheKey('v1:unknown:npm:data');
       }, /Unknown cache key type/);
+    });
+  });
+
+  describe('origin encoding scheme', () => {
+    it('should use npm alias for npm registries', () => {
+      const key1 = createPackumentKey('test', 'https://registry.npmjs.com');
+      const key2 = createPackumentKey('test', 'https://registry.npmjs.org');
+      const key3 = createPackumentKey('test', 'https://replicate.npmjs.com');
+
+      assert.ok(key1.includes(':npm:'));
+      assert.ok(key2.includes(':npm:'));
+      assert.ok(key3.includes(':npm:'));
+    });
+
+    it('should truncate segments: <=5 chars kept whole, else first 3 + last 2', () => {
+      // 'packages' (8 chars) -> 'pac' + 'es' = 'paces'
+      // 'example' (7 chars) -> 'exa' + 'le' = 'exale'
+      // 'com' (3 chars) -> 'com'
+      // 'javascript' (10 chars) -> 'jav' + 'pt' = 'javpt'
+      const key = createPackumentKey('test', 'https://packages.example.com/javascript');
+      assert.ok(key.includes(':paces.exale.com~javpt:'));
+    });
+
+    it('should handle http protocol with prefix', () => {
+      const key = createPackumentKey('test', 'http://localhost:4873');
+      assert.ok(key.includes(':http~locst~4873:'));
+    });
+
+    it('should handle multiple path segments', () => {
+      const key = createPackumentKey('test', 'https://mycompany.jfrog.io/artifactory/api/npm/npm-local');
+      // mycompany -> mycom + 'ny' = myany? No wait: first 3 + last 2 = 'myc' + 'ny' = 'mycny'
+      // Actually: 'mycompany' is 9 chars -> 'myc' + 'ny' = 'mycny'
+      // 'jfrog' is 5 chars -> 'jfrog'
+      // 'artifactory' is 11 chars -> 'art' + 'ry' = 'artry'
+      // 'api' is 3 chars -> 'api'
+      // 'npm' is 3 chars -> 'npm'
+      // 'npm-local' is 9 chars -> 'npm' + 'al' = 'npmal'
+      assert.ok(key.includes('mycny.jfrog.io~artry~api~npm~npmal'));
+    });
+
+    it('should handle bare hostnames by assuming https', () => {
+      const key = createPackumentKey('test', 'my-registry.com');
+      assert.ok(key.includes(':my-ry.com:'));
+    });
+
+    it('should omit default ports', () => {
+      const key1 = createPackumentKey('test', 'https://example.com:443');
+      const key2 = createPackumentKey('test', 'http://example.com:80');
+
+      // Should not contain port numbers for default ports
+      assert.ok(!key1.includes('443'));
+      assert.ok(!key2.includes('80'));
+    });
+
+    it('should preserve non-default ports', () => {
+      const key = createPackumentKey('test', 'https://example.com:8443');
+      assert.ok(key.includes('~8443'));
     });
   });
 

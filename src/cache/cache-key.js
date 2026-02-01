@@ -5,6 +5,23 @@
 
 const CACHE_KEY_VERSION = 'v1';
 
+const NPM_HOSTS = new Set([
+  'registry.npmjs.com',
+  'registry.npmjs.org',
+  'replicate.npmjs.com'
+]);
+
+/**
+ * Truncate a segment for compact cache keys
+ * If segment is 5 chars or less, keep whole. Otherwise, first 3 + last 2.
+ * @param {string} segment - Segment to truncate
+ * @returns {string} Truncated segment
+ */
+function truncateSegment(segment) {
+  if (segment.length <= 5) return segment;
+  return segment.slice(0, 3) + segment.slice(-2);
+}
+
 /**
  * Create a cache key for a partition
  * @param {string} startKey - Start key of the partition
@@ -16,7 +33,7 @@ export function createPartitionKey(startKey, endKey, origin = 'https://replicate
   const originKey = encodeOrigin(origin);
   const startHex = encodeKeySegment(startKey);
   const endHex = encodeKeySegment(endKey);
-  
+
   return `${CACHE_KEY_VERSION}:partition:${originKey}:${startHex}:${endHex}`;
 }
 
@@ -29,30 +46,53 @@ export function createPartitionKey(startKey, endKey, origin = 'https://replicate
 export function createPackumentKey(packageName, origin = 'https://registry.npmjs.com') {
   const originKey = encodeOrigin(origin);
   const nameHex = encodeKeySegment(packageName);
-  
+
   return `${CACHE_KEY_VERSION}:packument:${originKey}:${nameHex}`;
 }
 
 /**
- * Encode origin URL to short key
+ * Encode origin URL to short, readable key
+ * Format: [http~]hostname[~port][~path~segments]
+ * - HTTPS is implicit (only prefix http~ for HTTP)
+ * - Each segment truncated: <=5 chars kept whole, else first 3 + last 2
+ * - Hostname uses . separator, port/path use ~ separator
  * @param {string} origin - Full origin URL
  * @returns {string} Short origin key
  */
 function encodeOrigin(origin) {
-  // Use short aliases for common registries
-  if (origin === 'https://replicate.npmjs.com') return 'npm';
-  if (origin === 'https://registry.npmjs.org') return 'npm';
-  if (origin === 'https://registry.npmjs.com') return 'npm';
-  
-  // For custom registries, use first 8 chars of base64url
-  const encoder = new TextEncoder();
-  const bytes = encoder.encode(origin);
-  // Simple base64url encoding for edge compatibility
-  const base64 = btoa(String.fromCharCode(...bytes))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
-  return base64.substring(0, 8);
+  // Handle bare hostnames (no protocol)
+  if (!origin.includes('://')) {
+    origin = 'https://' + origin;
+  }
+
+  const url = new URL(origin);
+  const hostname = url.hostname.toLowerCase();
+  const isHttp = url.protocol === 'http:';
+  const isDefaultPort =
+    !url.port ||
+    (url.protocol === 'https:' && url.port === '443') ||
+    (url.protocol === 'http:' && url.port === '80');
+  const pathSegments = url.pathname.split('/').filter(Boolean);
+
+  // Check npm alias
+  if (NPM_HOSTS.has(hostname) && isDefaultPort && pathSegments.length === 0) {
+    return 'npm';
+  }
+
+  // Truncate hostname segments (split by .)
+  const truncatedHost = hostname
+    .split('.')
+    .map(truncateSegment)
+    .join('.');
+
+  // Build parts array
+  const parts = [];
+  if (isHttp) parts.push('http');
+  parts.push(truncatedHost);
+  if (!isDefaultPort && url.port) parts.push(url.port);
+  parts.push(...pathSegments.map(truncateSegment));
+
+  return parts.join('~');
 }
 
 /**
@@ -103,16 +143,35 @@ export function decodeCacheKey(cacheKey) {
 }
 
 /**
- * Decode origin from short key
+ * Decode origin from short key (best-effort reconstruction)
+ * Handles both old base64 format and new readable format
  * @param {string} originKey - Short origin key
- * @returns {string} Full origin URL
+ * @returns {string} Reconstructed origin URL (may not match original exactly)
  */
 function decodeOrigin(originKey) {
   if (originKey === 'npm') return 'https://registry.npmjs.com';
-  
-  // For custom registries, decode from base64url
-  // Note: This is lossy - we only stored first 8 chars
-  return `<custom:${originKey}>`;
+
+  // Detect new readable format: contains '.' (hostname) or '~' (separator)
+  if (originKey.includes('.') || originKey.includes('~')) {
+    // New readable format
+    const isHttp = originKey.startsWith('http~');
+    const protocol = isHttp ? 'http://' : 'https://';
+    const remainder = isHttp ? originKey.slice(5) : originKey;
+
+    // Split on ~ to get hostname and path/port parts
+    const parts = remainder.split('~');
+    const hostname = parts[0];
+    const rest = parts.slice(1);
+
+    // Reconstruct URL (note: truncated segments cannot be fully recovered)
+    if (rest.length === 0) {
+      return `${protocol}${hostname}`;
+    }
+    return `${protocol}${hostname}/${rest.join('/')}`;
+  }
+
+  // Old base64 format - cannot decode meaningfully
+  return `<legacy:${originKey}>`;
 }
 
 /**
