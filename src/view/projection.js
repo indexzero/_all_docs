@@ -23,22 +23,73 @@ const TRANSFORMS = {
 };
 
 /**
- * Get a nested value from an object using dot notation
+ * Get a nested value from an object using dot and bracket notation
  * @param {Object} obj - Source object
- * @param {string} path - Dot-separated path (e.g., "time.modified")
+ * @param {string} path - Path with dot or bracket notation (e.g., "time.modified", "time["4.17.21"]")
  */
 function getPath(obj, path) {
   if (!path || path === '.') return obj;
 
-  const parts = path.split('.');
+  // Parse path into segments, handling both dot notation and bracket notation
+  const segments = parsePath(path);
   let value = obj;
 
-  for (const part of parts) {
+  for (const segment of segments) {
     if (value == null) return undefined;
-    value = value[part];
+    value = value[segment];
   }
 
   return value;
+}
+
+/**
+ * Parse a path string into segments
+ * Handles: field.nested, field["key"], field[0], field["key with spaces"]
+ * @param {string} path - Path string to parse
+ * @returns {string[]} Array of path segments
+ */
+function parsePath(path) {
+  const segments = [];
+  let current = '';
+  let inBracket = false;
+  let bracketContent = '';
+
+  for (let i = 0; i < path.length; i++) {
+    const char = path[i];
+
+    if (char === '[' && !inBracket) {
+      if (current) {
+        segments.push(current);
+        current = '';
+      }
+      inBracket = true;
+      bracketContent = '';
+    } else if (char === ']' && inBracket) {
+      // Remove quotes from bracket content if present
+      let key = bracketContent;
+      if ((key.startsWith('"') && key.endsWith('"')) ||
+          (key.startsWith("'") && key.endsWith("'"))) {
+        key = key.slice(1, -1);
+      }
+      segments.push(key);
+      inBracket = false;
+    } else if (char === '.' && !inBracket) {
+      if (current) {
+        segments.push(current);
+        current = '';
+      }
+    } else if (inBracket) {
+      bracketContent += char;
+    } else {
+      current += char;
+    }
+  }
+
+  if (current) {
+    segments.push(current);
+  }
+
+  return segments;
 }
 
 /**
@@ -72,9 +123,9 @@ function parseFieldExpr(expr) {
   const path = parts[0];
   const transforms = parts.slice(1);
 
-  // Default alias is the path (or last path segment)
+  // Default alias is the last segment of the path
   if (!alias) {
-    alias = path.includes('.') ? path.split('.').pop() : path;
+    alias = extractLastSegment(path);
     // If there are transforms, append them to alias
     if (transforms.length > 0) {
       alias = `${alias}_${transforms[transforms.length - 1]}`;
@@ -82,6 +133,21 @@ function parseFieldExpr(expr) {
   }
 
   return { path, transforms, alias };
+}
+
+/**
+ * Extract the last segment from a path for use as default alias
+ * Handles both dot notation and bracket notation
+ * @param {string} path - Path string
+ * @returns {string} Last segment suitable for use as alias
+ */
+function extractLastSegment(path) {
+  // Parse the path to get segments
+  const segments = parsePath(path);
+  if (segments.length === 0) return path;
+
+  // Return the last segment
+  return segments[segments.length - 1];
 }
 
 /**

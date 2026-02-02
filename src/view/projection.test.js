@@ -199,3 +199,61 @@ describe('createFilter', () => {
     assert.strictEqual(fn({ count: 0 }), false);
   });
 });
+
+describe('bracket notation', () => {
+  test('selects with bracket notation double quotes', () => {
+    const fn = compileSelector('time["4.17.21"]');
+    const result = fn({
+      time: { '4.17.21': '2021-02-20T15:42:16.891Z' }
+    });
+
+    assert.deepStrictEqual(result, { '4.17.21': '2021-02-20T15:42:16.891Z' });
+  });
+
+  test('selects with bracket notation single quotes', () => {
+    const fn = compileSelector("time['4.17.21']");
+    const result = fn({
+      time: { '4.17.21': '2021-02-20T15:42:16.891Z' }
+    });
+
+    assert.deepStrictEqual(result, { '4.17.21': '2021-02-20T15:42:16.891Z' });
+  });
+
+  test('selects with mixed notation', () => {
+    const fn = compileSelector('versions["1.0.0"].dist.integrity');
+    const result = fn({
+      versions: {
+        '1.0.0': { dist: { integrity: 'sha512-abc123' } }
+      }
+    });
+
+    assert.deepStrictEqual(result, { integrity: 'sha512-abc123' });
+  });
+
+  test('selects with bracket notation and transform', () => {
+    const fn = compileSelector('time["4.17.21"] as publishedAt');
+    const result = fn({
+      time: { '4.17.21': '2021-02-20T15:42:16.891Z' }
+    });
+
+    assert.deepStrictEqual(result, { publishedAt: '2021-02-20T15:42:16.891Z' });
+  });
+
+  test('handles missing bracket key gracefully', () => {
+    const fn = compileSelector('time["missing"]');
+    const result = fn({
+      time: { '4.17.21': '2021-02-20T15:42:16.891Z' }
+    });
+
+    assert.deepStrictEqual(result, { missing: undefined });
+  });
+
+  test('selects with numeric bracket notation', () => {
+    const fn = compileSelector('items[0]');
+    const result = fn({
+      items: ['first', 'second', 'third']
+    });
+
+    assert.deepStrictEqual(result, { '0': 'first' });
+  });
+});
