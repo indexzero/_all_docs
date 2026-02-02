@@ -18,10 +18,10 @@ Options:
   --json           Output as ndjson (default)
 
 Examples:
-  _all_docs view join npm-packages cgr-packages
-  _all_docs view join npm-packages cgr-packages --inner
-  _all_docs view join npm-packages cgr-packages --diff
-  _all_docs view join npm-versions cgr-versions --limit 1000
+  _all_docs view join has-scripts uses-gyp --diff
+  _all_docs view join deprecated-pkgs has-dependents --inner
+  _all_docs view join has-deps has-license --diff
+  _all_docs view join scoped-pkgs published-2024 --inner --limit 1000
 `;
 
 export const command = async (cli) => {
