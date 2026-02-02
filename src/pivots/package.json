@@ -1,6 +1,6 @@
 {
   "name": "@_all_docs/pivots",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Default pivots from which _all_docs partitions are derived",
   "repository": {
     "type": "git",

@@ -5,7 +5,7 @@ All notable changes to `@_all_docs` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.0](https://github.com/indexzero/_all_docs/compare/@_all_docs/cli@0.1.0...HEAD) (2026-02-01)
+## [0.5.1](https://github.com/indexzero/_all_docs/compare/@_all_docs/cli@0.1.0...HEAD) (2026-02-02)
 
 Major feature release with Views system, enhanced CLI, and multi-runtime support.
 

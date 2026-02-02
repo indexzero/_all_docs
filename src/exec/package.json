@@ -1,7 +1,7 @@
 {
   "name": "@_all_docs/exec",
   "description": "Run distributed map-reduce operations on _all_docs partitions & packuments",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "main": "index.js",
   "type": "module",
   "repository": {

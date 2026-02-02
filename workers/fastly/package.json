@@ -1,7 +1,15 @@
 {
   "name": "@_all_docs/worker-fastly",
-  "version": "0.5.0",
+  "version": "0.5.1",
+  "description": "Fastly Compute@Edge runtime for @_all_docs/worker",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/indexzero/_all_docs.git",
+    "directory": "workers/fastly"
+  },
+  "author": "Charlie Robbins <npm@charlie.dev>",
+  "license": "Apache-2.0",
   "exports": {
     ".": "./index.js",
     "./storage": "./storage.js",

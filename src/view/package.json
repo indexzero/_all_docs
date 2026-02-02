@@ -1,8 +1,15 @@
 {
   "name": "@_all_docs/view",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "View abstraction for _all_docs cache queries",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/indexzero/_all_docs.git",
+    "directory": "src/view"
+  },
+  "author": "Charlie Robbins <npm@charlie.dev>",
+  "license": "Apache-2.0",
   "main": "index.js",
   "exports": {
     ".": "./index.js"
