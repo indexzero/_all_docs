@@ -10,6 +10,7 @@ export default class Config {
     this.dirs = {
       partitions: this.xdg.cache('partitions'),
       packuments: this.xdg.cache('packuments'),
+      config: this.xdg.config(),
       logs: this.xdg.data('logs'),
       sessions: this.xdg.data('sessions')
     };

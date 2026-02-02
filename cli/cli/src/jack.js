@@ -15,7 +15,8 @@ const fullCommands = {
   cache: 'cache',
   exec: 'exec',
   packument: 'packument',
-  partition: 'partition'
+  partition: 'partition',
+  view: 'view'
 };
 
 const aliases = {
@@ -25,7 +26,8 @@ const aliases = {
   ch: 'cache',
   ex: 'exec',
   pku: 'packument',
-  prt: 'partition'
+  prt: 'partition',
+  vw: 'view'
 };
 
 const commands = {
@@ -240,6 +242,65 @@ const cli = ack
 
                     Use the encoded origin format (e.g., paces.exale.com~javpt)
       `
+    }
+  })
+
+  // View command options
+  .opt({
+    type: {
+      hint: 'type',
+      description: `Entity type for view (packument or partition)`
+    },
+    select: {
+      hint: 'expr',
+      description: `Field selection expression for view projection
+
+                    Syntax: field1, field2|transform as alias
+                    Transforms: keys, values, length, first, last, sort, unique
+      `
+    },
+    filter: {
+      hint: 'expr',
+      description: `Filter expression for view query (e.g., "name=lodash")`
+    },
+    on: {
+      hint: 'field',
+      description: `Join key field (default: name)`
+    },
+    limit: {
+      hint: 'n',
+      description: `Maximum records to return`
+    }
+  })
+
+  .flag({
+    force: {
+      short: 'f',
+      description: 'Force overwrite existing view definition'
+    },
+    json: {
+      description: 'Output as JSON'
+    },
+    count: {
+      description: 'Only output the count of matching records'
+    },
+    collect: {
+      description: 'Collect all results into a JSON array'
+    },
+    left: {
+      description: 'Left join - include all from left view (default join type)'
+    },
+    inner: {
+      description: 'Inner join - only records present in both views'
+    },
+    right: {
+      description: 'Right join - include all from right view'
+    },
+    full: {
+      description: 'Full join - include all records from both views'
+    },
+    diff: {
+      description: 'Set difference - records in left but not in right'
     }
   })
 
