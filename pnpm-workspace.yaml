@@ -10,6 +10,6 @@ catalog:
   '@vltpkg/cache-unzip': 0.0.0-9
   '@vltpkg/registry-client': 0.0.0-9
   '@vltpkg/xdg': 0.0.0-9
-  p-map: ^7.0.3
+  p-map: ^7.0.4
   p-map-series: ^3.0.0
-  undici: ^7.13.0
+  undici: ^7.20.0

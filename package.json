@@ -30,9 +30,9 @@
     "undici": "catalog:"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.29.5",
-    "npm-high-impact": "^1.11.0",
-    "rimraf": "^6.0.1",
+    "@changesets/cli": "^2.29.8",
+    "npm-high-impact": "^1.12.0",
+    "rimraf": "^6.1.2",
     "xo": "^1.2.1"
   },
   "keywords": [
