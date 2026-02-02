@@ -136,22 +136,30 @@ describe('view query --format', () => {
 
   describe('format validation', () => {
     it('recognizes valid formats', () => {
-      const validFormats = ['ndjson', 'lines', 'json'];
+      const validFormats = ['ndjson', 'jsonl', 'lines', 'json'];
 
       for (const format of validFormats) {
+        const normalized = format === 'ndjson' ? 'jsonl' : format;
         assert.ok(
-          ['ndjson', 'lines', 'json'].includes(format),
+          ['jsonl', 'lines', 'json'].includes(normalized),
           `${format} should be valid`
         );
       }
+    });
+
+    it('normalizes ndjson to jsonl', () => {
+      const format = 'ndjson';
+      const normalized = format === 'ndjson' ? 'jsonl' : format;
+      assert.equal(normalized, 'jsonl');
     });
 
     it('rejects invalid formats', () => {
       const invalidFormats = ['csv', 'xml', 'yaml', 'tsv', ''];
 
       for (const format of invalidFormats) {
+        const normalized = format === 'ndjson' ? 'jsonl' : format;
         assert.ok(
-          !['ndjson', 'lines', 'json'].includes(format),
+          !['jsonl', 'lines', 'json'].includes(normalized),
           `${format} should be invalid`
         );
       }

@@ -9,8 +9,8 @@ Options:
   --limit <n>      Maximum records to return
   --count          Only output the count of matching records
   --filter <expr>  Filter expression (e.g., "name=lodash", "versions|length>10")
-  --format <fmt>   Output format: ndjson (default), lines, json
-                   - ndjson: One JSON object per line (streaming)
+  --format <fmt>   Output format: ndjson (default), jsonl, lines, json
+                   - ndjson/jsonl: One JSON object per line (streaming)
                    - lines: Plain text, one value per line
                    - json: Complete JSON array
 
@@ -68,10 +68,13 @@ export const command = async (cli) => {
     // Determine format (--collect is alias for --format json for backwards compat)
     const format = cli.values.collect ? 'json' : (cli.values.format || 'ndjson');
 
+    // Normalize format (ndjson is alias for jsonl)
+    const normalizedFormat = format === 'ndjson' ? 'jsonl' : format;
+
     // Validate format
-    if (!['ndjson', 'lines', 'json'].includes(format)) {
+    if (!['jsonl', 'lines', 'json'].includes(normalizedFormat)) {
       console.error(`Unknown format: ${format}`);
-      console.error('Valid formats: ndjson, lines, json');
+      console.error('Valid formats: ndjson, jsonl, lines, json');
       process.exit(1);
     }
 
@@ -79,8 +82,8 @@ export const command = async (cli) => {
     const results = [];
 
     for await (const record of queryView(view, cache, options)) {
-      switch (format) {
-        case 'ndjson':
+      switch (normalizedFormat) {
+        case 'jsonl':
           console.log(JSON.stringify(record));
           break;
 
@@ -106,7 +109,7 @@ export const command = async (cli) => {
     }
 
     // Output collected results for json format
-    if (format === 'json') {
+    if (normalizedFormat === 'json') {
       console.log(JSON.stringify(results, null, 2));
     }
   } catch (err) {

@@ -674,13 +674,14 @@ npx _all_docs view query <name> [options]
 - `--limit <n>` - Maximum records to return
 - `--filter <expr>` - Filter expression (e.g., `name=lodash`, `versions|length>10`)
 - `--count` - Only output the count of matching records
-- `--format <fmt>` - Output format: ndjson (default), lines, json
+- `--format <fmt>` - Output format: ndjson (default), jsonl, lines, json
 
 **Output Formats:**
 
 | Format | Description | Use Case |
 |--------|-------------|----------|
 | `ndjson` | Newline-delimited JSON (default) | Streaming processing with jq |
+| `jsonl` | JSON Lines (alias for ndjson) | ML/data science tooling |
 | `lines` | Plain text values | Shell piping, xargs, sort, uniq |
 | `json` | JSON array | Small datasets, programmatic use |
 

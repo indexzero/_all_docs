@@ -273,9 +273,9 @@ const cli = ack
     },
     format: {
       hint: 'fmt',
-      description: `Output format: ndjson (default), lines, json
+      description: `Output format: ndjson (default), jsonl, lines, json
 
-                    - ndjson: One JSON object per line (streaming)
+                    - ndjson/jsonl: One JSON object per line (streaming)
                     - lines: Plain text values (for shell piping)
                     - json: Complete JSON array
       `
