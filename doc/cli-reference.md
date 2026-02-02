@@ -745,6 +745,60 @@ npx _all_docs view join npm-pkgs cgr-pkgs --diff --select 'name'
 npx _all_docs view join npm-pkgs cgr-pkgs --inner
 ```
 
+### view enrich
+
+Enrich NDJSON records with fields from cached packuments.
+
+```bash
+npx _all_docs view enrich [options]
+```
+
+**Options:**
+- `-i, --input <file>` - Input NDJSON file ('-' for stdin)
+- `--add <expr>` - Field to add from packument (repeatable)
+- `--origin <origin>` - Packument origin (default: npm)
+- `--name-field <f>` - Input field for name (default: name)
+- `--version-field <f>` - Input field for version (default: version)
+- `--on-missing <mode>` - How to handle missing packuments: skip, null, error (default: null)
+- `--progress` - Show progress on stderr
+
+**Add Expression Syntax:**
+
+```
+<selector> as <alias>
+```
+
+Use `.field` to reference input record fields:
+
+| Expression | Meaning |
+|------------|---------|
+| `time[.version]` | `packument.time[record.version]` |
+| `versions[.version].dist.integrity` | `packument.versions[record.version].dist.integrity` |
+
+**Examples:**
+
+```bash
+# Add publish dates to package specs
+npx _all_docs view enrich \
+  --input specs.ndjson \
+  --add 'time[.version] as addedAt' \
+  > specs-with-dates.ndjson
+
+# Add multiple fields
+npx _all_docs view enrich \
+  --input build-order.ndjson \
+  --add 'time[.version] as publishedAt' \
+  --add 'versions[.version].dist.integrity as integrity' \
+  > build-manifest.ndjson
+
+# Build manifest generation
+cat build-order.ndjson | npx _all_docs view enrich \
+  --input - \
+  --add 'versions[.version].dist.integrity as expectedIntegrity' \
+  --add 'time[.version] as publishedAt' \
+  > build-manifest.ndjson
+```
+
 ### view list
 
 List all defined views.

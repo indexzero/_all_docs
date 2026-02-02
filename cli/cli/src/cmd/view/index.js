@@ -7,6 +7,7 @@ export { command as show, usage as showUsage } from './show.js';
 export { command as deleteView, usage as deleteUsage } from './delete.js';
 export { command as query, usage as queryUsage } from './query.js';
 export { command as join, usage as joinUsage } from './join.js';
+export { command as enrich, usage as enrichUsage } from './enrich.js';
 
 export const usage = `Usage: _all_docs view <command> [options]
 
@@ -19,6 +20,7 @@ Commands:
   delete <name>              Delete a view
   query <name>               Query a view (output ndjson)
   join <left> <right>        Join two views
+  enrich                     Enrich NDJSON with packument data
 
 A view is a predicate (origin filter) plus a projection (field selection).
 Views enable efficient queries and joins across different registry caches.
