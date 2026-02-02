@@ -1,7 +1,7 @@
 {
   "name": "@_all_docs/cache",
   "description": "A hierarchical file-system buffer cache for HTTP responses",
-  "version": "0.1.0",
+  "version": "0.5.0",
   "main": "index.js",
   "type": "module",
   "repository": {
