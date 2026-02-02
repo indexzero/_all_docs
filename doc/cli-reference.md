@@ -728,7 +728,7 @@ npx _all_docs view join <left> <right> [options]
 - `--limit <n>` - Maximum records to return
 - `--select <expr>` - Output field selection
 
-This enables comparing packages across different sources:
+Use joins for set operations and security analysis:
 
 **Examples:**
 
@@ -738,11 +738,11 @@ npx _all_docs view define npm --origin npm
 npx _all_docs view define snapshot --origin ./snapshot/
 npx _all_docs view join npm snapshot --diff --select 'name'
 
-# Find packages in npm but not in CGR
-npx _all_docs view join npm-pkgs cgr-pkgs --diff --select 'name'
+# Find packages with install scripts but no node-gyp (security analysis)
+npx _all_docs view join has-scripts uses-gyp --diff --select 'name'
 
-# Inner join - packages in both registries
-npx _all_docs view join npm-pkgs cgr-pkgs --inner
+# Inner join - find deprecated packages that still have dependents
+npx _all_docs view join deprecated-pkgs has-dependents --inner
 ```
 
 ### view enrich
