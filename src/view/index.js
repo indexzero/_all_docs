@@ -1,5 +1,8 @@
 /**
  * View module - predicate + projection over cached data
+ *
+ * For local directory support, use createStorageDriver({ LOCAL_DIR: path })
+ * from @_all_docs/cache when creating the cache instance.
  */
 export { View } from './view.js';
 export { ViewStore } from './store.js';
@@ -11,9 +14,3 @@ export {
   createProjection,
   createFilter
 } from './projection.js';
-export {
-  CacheAdapter,
-  LocalDirAdapter,
-  createOriginAdapter,
-  isLocalOrigin
-} from './origin-adapter.js';
