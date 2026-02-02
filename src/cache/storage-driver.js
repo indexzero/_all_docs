@@ -1,9 +1,21 @@
+import { LocalDirStorageDriver, isLocalPath } from './local-dir-driver.js';
+
+export { LocalDirStorageDriver, isLocalPath };
+
 /**
  * Creates a storage driver based on the runtime environment
  * @param {Object} env - Environment configuration
+ * @param {string} [env.LOCAL_DIR] - Local directory path (read-only driver)
+ * @param {string} [env.CACHE_DIR] - Cache directory path
+ * @param {string} [env.RUNTIME] - Runtime environment (node, cloudflare, fastly, cloudrun)
  * @returns {Object} Storage driver instance
  */
 export async function createStorageDriver(env) {
+  // Local directory takes precedence - it's a read-only mount
+  if (env?.LOCAL_DIR) {
+    return new LocalDirStorageDriver(env.LOCAL_DIR);
+  }
+
   const runtime = env?.RUNTIME || 'node';
 
   switch (runtime) {

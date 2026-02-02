@@ -1,20 +1,25 @@
 /**
  * Query execution for views
+ *
+ * The cache instance should be configured with the appropriate storage driver:
+ * - For registry origins: Use createStorageDriver({ CACHE_DIR: ... })
+ * - For local directories: Use createStorageDriver({ LOCAL_DIR: ... })
  */
 import { createProjection, createFilter } from './projection.js';
 
 /**
  * Query a view, yielding projected records
  * @param {View} view - The view to query
- * @param {Cache} cache - The cache instance
+ * @param {Cache} cache - The cache instance configured with appropriate driver
  * @param {Object} options - Query options
  * @param {number} [options.limit] - Maximum records to return
  * @param {string} [options.where] - Additional filter expression
  * @param {boolean} [options.progress] - Show progress on stderr
+ * @param {string} [options.keyPrefix] - Override key prefix (defaults to view.getCacheKeyPrefix())
  * @yields {Object} Projected records
  */
 export async function* queryView(view, cache, options = {}) {
-  const { limit, where, progress = false } = options;
+  const { limit, where, progress = false, keyPrefix } = options;
 
   // Compile projection from view's select
   const project = createProjection({ select: view.select });
@@ -22,7 +27,9 @@ export async function* queryView(view, cache, options = {}) {
   // Compile additional filter if provided
   const filter = createFilter({ where });
 
-  const prefix = view.getCacheKeyPrefix();
+  // Get key prefix - for local dirs this will be ignored by the driver
+  const prefix = keyPrefix ?? view.getCacheKeyPrefix();
+
   let count = 0;
   let yielded = 0;
 
@@ -41,7 +48,7 @@ export async function* queryView(view, cache, options = {}) {
       const entry = await cache.fetch(key);
       if (!entry) continue;
 
-      // Cache entries wrap the response - packument is in body
+      // Extract the packument body from cache entry
       const value = entry.body || entry;
 
       // Apply view's projection

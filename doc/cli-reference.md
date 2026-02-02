@@ -616,6 +616,95 @@ npx _all_docs cache create-index > previous-index.txt
 
 ---
 
+## view
+
+Commands for defining and querying views over cached data.
+
+Views can be created over two types of origins:
+- **Registry cache**: Data fetched from npm or other registries
+- **Local directory**: JSON packument files in a directory
+
+### view define
+
+Define a named view for querying packuments.
+
+```bash
+npx _all_docs view define <name> [options]
+```
+
+**Options:**
+- `--origin <origin>` - Data origin: encoded name (npm), URL, or local path
+- `--registry <url>` - Registry URL (alternative to origin)
+- `--select <expr>` - Field selection expression
+- `--type <type>` - Entity type: packument, partition (default: packument)
+- `--force`, `-f` - Overwrite existing view definition
+
+**Origin Types:**
+
+| Type | Example | Description |
+|------|---------|-------------|
+| Encoded name | `npm` | Pre-defined registry origin |
+| Registry URL | `https://npm.example.com` | Custom registry |
+| Local path | `./local-data/` | Directory of JSON files |
+| file:// URL | `file:///data/archive/` | Explicit file URL |
+
+**Examples:**
+
+```bash
+# Define view over npm registry cache
+npx _all_docs view define npm-pkgs --origin npm
+
+# Define view over local directory of packuments
+npx _all_docs view define local-snapshot --origin ./local-packuments/
+
+# Using file:// URL for local directory
+npx _all_docs view define archive --origin file:///data/npm-archive/
+```
+
+### view query
+
+Query a defined view and output results.
+
+```bash
+npx _all_docs view query <name> [options]
+```
+
+**Options:**
+- `--limit <n>` - Maximum records to return
+- `--filter <expr>` - Filter expression
+- `--count` - Only output the count of matching records
+
+### view join
+
+Join two views on a common key.
+
+```bash
+npx _all_docs view join <left> <right> [options]
+```
+
+This enables comparing packages across different sources:
+
+```bash
+# Compare npm cache against local snapshot
+npx _all_docs view define npm --origin npm
+npx _all_docs view define snapshot --origin ./snapshot/
+npx _all_docs view join npm snapshot --diff --select 'name'
+```
+
+### view list
+
+List all defined views.
+
+### view show
+
+Show details of a defined view.
+
+### view delete
+
+Delete a defined view.
+
+---
+
 ## Troubleshooting
 
 ### Common Issues

@@ -1,5 +1,5 @@
 import { ViewStore, queryView, countView, collectView } from '@_all_docs/view';
-import { Cache, createStorageDriver } from '@_all_docs/cache';
+import { Cache, createStorageDriver, isLocalPath } from '@_all_docs/cache';
 
 export const usage = `Usage: _all_docs view query <name> [options]
 
@@ -43,8 +43,12 @@ export const command = async (cli) => {
     process.exit(1);
   }
 
-  const driver = await createStorageDriver({ CACHE_DIR: cli.dir('packuments') });
-  const cache = new Cache({ path: cli.dir('packuments'), driver });
+  // Create appropriate storage driver based on view's origin
+  const origin = view.registry || view.origin;
+  const driver = isLocalPath(origin)
+    ? await createStorageDriver({ LOCAL_DIR: origin })
+    : await createStorageDriver({ CACHE_DIR: cli.dir('packuments') });
+  const cache = new Cache({ path: origin, driver });
 
   const options = {
     limit: cli.values.limit ? parseInt(cli.values.limit, 10) : undefined,
