@@ -23,12 +23,12 @@ Commands:
   enrich                     Enrich NDJSON with packument data
 
 A view is a predicate (origin filter) plus a projection (field selection).
-Views enable efficient queries and joins across different registry caches.
+Views enable efficient queries and joins for set operations on cached data.
 
 Examples:
   _all_docs view define npm-pkgs --origin npm
   _all_docs view define npm-vers --origin npm --select 'name, versions|keys'
   _all_docs view list
   _all_docs view query npm-vers --limit 100
-  _all_docs view join npm-vers cgr-vers --diff
+  _all_docs view join has-scripts uses-gyp --diff
 `;
