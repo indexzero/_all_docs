@@ -43,18 +43,48 @@ function parseTextFile(filepath) {
 }
 
 /**
+ * Extract unique package names from a parsed list.
+ * Handles both plain strings and {name, ...} objects.
+ * @param {Array<string|{name: string}>} items - Raw items from input
+ * @returns {string[]} Deduplicated array of package names
+ */
+function uniqueNames(items) {
+  const seen = new Set();
+  const names = [];
+
+  for (const item of items) {
+    const name = typeof item === 'string' ? item
+      : (item && typeof item.name === 'string') ? item.name
+      : null;
+
+    if (!name) {
+      console.warn(`Warning: Skipping unrecognized entry: ${JSON.stringify(item)}`);
+      continue;
+    }
+
+    if (!seen.has(name)) {
+      seen.add(name);
+      names.push(name);
+    }
+  }
+
+  return names;
+}
+
+/**
  * Load package names from input file
  * @param {string} fullpath - Absolute path to input file
- * @returns {Promise<string[]>} Array of package names
+ * @returns {Promise<string[]>} Deduplicated array of package names
  */
 async function loadPackageNames(fullpath) {
   const ext = extname(fullpath).toLowerCase();
 
   if (ext === '.json') {
     const { default: jsonData } = await import(fullpath, { with: { type: 'json' } });
-    return Array.isArray(jsonData) ? jsonData : [jsonData];
+    const items = Array.isArray(jsonData) ? jsonData : [jsonData];
+    return uniqueNames(items);
   } else if (ext === '.txt' || ext === '.text' || ext === '') {
-    return parseTextFile(fullpath);
+    return uniqueNames(parseTextFile(fullpath));
   } else {
     throw new Error(`Unsupported file type: ${ext}. Use .json or .txt files.`);
   }
@@ -211,6 +241,10 @@ export const command = async cli => {
     env
   });
 
+  // Resolve cache flag: --no-cache sets cli.values.cache to false
+  const useCache = cli.values.cache !== false;
+  const requestOptions = useCache ? {} : { cache: false };
+
   // Track progress with atomic counter for concurrent access
   let processedCount = 0;
   let interrupted = false;
@@ -247,7 +281,7 @@ export const command = async cli => {
       }
 
       try {
-        const entry = await client.request(name);
+        const entry = await client.request(name, requestOptions);
         const cached = entry?.hit ?? false;
 
         if (useCheckpoint) {
