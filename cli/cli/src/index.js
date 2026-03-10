@@ -52,14 +52,31 @@ async function importCommand(cmd, subcmd) {
     process.exit(1);
   }
 
-  const cmdpath = `${cmd}/${subcmd}`;
+  if (subcmd) {
+    const cmdpath = `${cmd}/${subcmd}`;
+    try {
+      return await import(`./cmd/${cmdpath}.js`);
+    } catch (err) {
+      throw error('Failed to load command', {
+        found: cmdpath,
+        cause: err
+      });
+    }
+  }
+
+  // No subcommand provided: try loading the command's index module
   try {
-    return await import(`./cmd/${cmdpath}.js`);
-  } catch (err) {
-    throw error('Failed to load command', {
-      found: cmdpath,
-      cause: err
-    });
+    return await import(`./cmd/${cmd}/index.js`);
+  } catch {
+    // No index.js exists for this command; return a stub so --help
+    // can still print general CLI usage via output.js fallback
+    return {
+      command: () => {
+        console.error(`Error: No subcommand provided for '${cmd}'`);
+        console.error(cli.usage());
+        process.exit(1);
+      }
+    };
   }
 }
 
