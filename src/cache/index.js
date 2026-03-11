@@ -5,3 +5,5 @@ export { createCacheKey, decodeCacheKey, createPartitionKey, createPackumentKey,
 export { PartitionCheckpoint } from './checkpoint.js';
 export { createStorageDriver, LocalDirStorageDriver, isLocalPath } from './storage-driver.js';
 export { AuthError, TempError, PermError, categorizeHttpError } from './errors.js';
+export { PackumentCache } from './packument-cache.js';
+export { defaultCacheDir } from './default-cache-dir.js';

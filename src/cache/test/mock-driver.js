@@ -11,7 +11,8 @@ export class MockStorageDriver {
   async get(key) {
     const value = this.store.get(key);
     if (!value) throw new Error(`Key not found: ${key}`);
-    return value;
+    // Mirror CacacheDriver: stored strings are deserialized on read
+    return typeof value === 'string' ? JSON.parse(value) : value;
   }
 
   async put(key, value) {
