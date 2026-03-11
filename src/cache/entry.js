@@ -38,6 +38,18 @@ export class CacheEntry {
     const data = JSON.stringify(body);
     this.integrity = await this.calculateIntegrity(data);
   }
+
+  /**
+   * Set body from a pre-existing JSON string, avoiding re-serialization.
+   * Integrity is skipped (cacache provides storage-layer integrity).
+   * @param {Object} body - Parsed body object
+   * @param {string} rawJsonString - The original JSON string
+   */
+  setBodyRaw(body, rawJsonString) {
+    this.body = body;
+    this._rawJson = rawJsonString;
+    this.integrity = null;
+  }
   
   async calculateIntegrity(data) {
     if (globalThis.crypto && globalThis.crypto.subtle) {
@@ -97,6 +109,10 @@ export class CacheEntry {
     return this.headers['etag'];
   }
 
+  get lastModified() {
+    return this.headers['last-modified'];
+  }
+
   extractMaxAge(cacheControl) {
     if (!cacheControl) return null;
     const match = cacheControl.match(/max-age=(\d+)/);
@@ -104,6 +120,17 @@ export class CacheEntry {
   }
 
   encode() {
+    if (this._rawJson) {
+      // Fast path: splice raw body JSON into metadata to avoid re-stringify
+      const meta = JSON.stringify({
+        statusCode: this.statusCode,
+        headers: this.headers,
+        integrity: this.integrity,
+        timestamp: this.timestamp,
+        version: this.version
+      });
+      return meta.slice(0, -1) + ',"body":' + this._rawJson + '}';
+    }
     return {
       statusCode: this.statusCode,
       headers: this.headers,

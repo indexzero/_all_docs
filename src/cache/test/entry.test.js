@@ -120,8 +120,75 @@ describe('CacheEntry', () => {
   it('should get etag property', () => {
     const entry = new CacheEntry(200, { 'etag': '"test-etag"' });
     assert.equal(entry.etag, '"test-etag"');
-    
+
     const noEtag = new CacheEntry(200, {});
     assert.equal(noEtag.etag, undefined);
+  });
+
+  it('should get lastModified property', () => {
+    const entry = new CacheEntry(200, { 'last-modified': 'Wed, 21 Oct 2015 07:28:00 GMT' });
+    assert.equal(entry.lastModified, 'Wed, 21 Oct 2015 07:28:00 GMT');
+  });
+
+  it('should return undefined when no lastModified header', () => {
+    const entry = new CacheEntry(200, {});
+    assert.equal(entry.lastModified, undefined);
+  });
+
+  it('should preserve lastModified through encode/decode', async () => {
+    const original = new CacheEntry(200, {
+      'last-modified': 'Wed, 21 Oct 2015 07:28:00 GMT',
+      'etag': '"abc"'
+    });
+    await original.setBody({ test: true });
+
+    const decoded = CacheEntry.decode(original.encode());
+    assert.equal(decoded.lastModified, 'Wed, 21 Oct 2015 07:28:00 GMT');
+  });
+
+  it('should set body from raw string without stringify', () => {
+    const entry = new CacheEntry(200, { 'etag': '"raw"' });
+    const body = { name: 'lodash', versions: { '4.17.21': {} } };
+    const rawJson = JSON.stringify(body);
+
+    entry.setBodyRaw(body, rawJson);
+
+    assert.deepEqual(entry.body, body);
+    assert.equal(entry.integrity, null, 'integrity skipped for raw path');
+    assert.equal(entry._rawJson, rawJson);
+  });
+
+  it('should encode to string when _rawJson is set', () => {
+    const entry = new CacheEntry(200, { 'etag': '"raw"' });
+    const body = { name: 'test' };
+    const rawJson = '{"name":"test"}';
+
+    entry.setBodyRaw(body, rawJson);
+    const encoded = entry.encode();
+
+    assert.equal(typeof encoded, 'string', 'encode should return a string');
+    const decoded = JSON.parse(encoded);
+    assert.equal(decoded.statusCode, 200);
+    assert.deepEqual(decoded.body, body);
+    assert.equal(decoded.integrity, null);
+    assert.equal(decoded.headers['etag'], '"raw"');
+  });
+
+  it('should round-trip through encode/decode with raw body', () => {
+    const entry = new CacheEntry(200, {
+      'etag': '"round-trip"',
+      'cache-control': 'max-age=300'
+    });
+    const body = { name: 'lodash', versions: { '4.17.21': { name: 'lodash' } } };
+    const rawJson = JSON.stringify(body);
+
+    entry.setBodyRaw(body, rawJson);
+    const encoded = entry.encode();
+    const decoded = CacheEntry.decode(JSON.parse(encoded));
+
+    assert.equal(decoded.statusCode, 200);
+    assert.deepEqual(decoded.body, body);
+    assert.equal(decoded.etag, '"round-trip"');
+    assert.equal(decoded.version, 1);
   });
 });
